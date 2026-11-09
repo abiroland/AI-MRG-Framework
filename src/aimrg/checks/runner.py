@@ -15,6 +15,7 @@ from aimrg.core.models import (
     Finding,
     Severity,
 )
+from aimrg.findings import default_due_date
 from aimrg.registry.store import Registry, RegistryError
 
 
@@ -94,11 +95,13 @@ def run_control_checks(
         )
         finding = None
         if open_findings and result.outcome is CheckOutcome.FAIL:
+            severity = Severity.HIGH if tier is not None and tier <= 2 else Severity.MEDIUM
             finding = registry.add_finding(
                 Finding(
                     asset_id=asset.id,
                     control_id=control.id,
-                    severity=Severity.HIGH if tier is not None and tier <= 2 else Severity.MEDIUM,
+                    severity=severity,
+                    due_date=default_due_date(severity),
                     title=f"{spec.id} failed ({control.id})",
                     description=result.summary,
                     owner=asset.owner,

@@ -1,0 +1,46 @@
+# Third-Party Model Assessment — {{ asset.name }}
+
+> {{ disclaimer }}
+
+| | |
+|---|---|
+| **Asset** | {{ asset.name | cell }} (`{{ asset.id[:12] }}`) |
+| **Vendor** | {{ asset.vendor | cell }} |
+| **Owner** | {{ asset.owner | cell }} |
+| **Business uses** | {{ asset.business_uses | join(", ") | cell }} |
+| **Governance track / tier** | {{ asset.classification.track.value }} / {{ asset.risk_assessment.tier }} |
+| **Governance pack** | {{ pack.ref }} |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+
+## 1. Due diligence
+
+[TO COMPLETE — what is known about the model's conceptual soundness, design, development data and performance; what the vendor withheld and how that gap is mitigated; contractual rights to information, testing and audit; the vendor's change-notification process.]
+
+## 2. Institution-specific customization
+
+[TO COMPLETE — settings, cut-offs, overlays or retraining applied by the institution, with justification and the validation performed on them.]
+
+## 3. Performance in our portfolio
+
+{% set monitored = results_for("performance.") + results_for("outcomes.") + results_for("stability.") %}
+{% if monitored %}
+| Check | Outcome | Recorded | Summary |
+|---|---|---|---|
+{% for r in monitored %}
+| {{ r.check_id }} | {{ r.outcome }} | {{ r.evidence.recorded_at.strftime("%Y-%m-%d") }} | {{ r.summary | cell }} |
+{% endfor %}
+{% else %}
+No performance evidence recorded yet for this vendor model.
+{% endif %}
+
+## 4. Third-party controls
+
+| Control | Title | Status | Missing evidence |
+|---|---|---|---|
+{% for c in coverage if c.control.id.startswith("FIN-TPM") %}
+| {{ c.control.id }} | {{ c.control.title | cell }} | {{ c.status.value }} | {{ c.missing | map(attribute="value") | join(", ") | cell }} |
+{% endfor %}
+
+## 5. Conclusion
+
+[TO COMPLETE — reviewer: conclusion on fitness for use, conditions, and monitoring requirements.]

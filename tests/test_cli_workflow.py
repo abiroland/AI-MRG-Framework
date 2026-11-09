@@ -250,6 +250,166 @@ def test_import_and_ai_system_classification(cli, tmp_path: Path) -> None:  # ty
     assert cli("plan", "nope").exit_code != 0
 
 
+def test_lifecycle_fairness_and_reasons_cli(cli, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    from aimrg.datasets import synthetic_lending_decisions
+
+    reasons_yaml = (
+        Path(__file__).resolve().parents[1] / "examples" / "credit-scorecard" / "reasons.yaml"
+    )
+    synthetic_lending_decisions().to_csv("decisions.csv", index=False)
+    _ok(cli("init"))
+    _ok(
+        cli(
+            "register",
+            ASSET,
+            "--owner",
+            "risk",
+            "--use",
+            "credit_decision",
+            "--category",
+            "ml_non_generative",
+        )
+    )
+    _ok(
+        cli(
+            "classify",
+            ASSET,
+            "--model",
+            "--consequential",
+            "--in-house",
+            "--jurisdiction",
+            "US",
+            "--rationale",
+            "PD",
+        )
+    )
+    _ok(
+        cli(
+            "tier",
+            ASSET,
+            *[
+                f"--score={f}=4"
+                for f in ("complexity", "assumptions", "data_quality", "exposure", "purpose")
+            ],
+        )
+    )
+
+    status = _ok(cli("status", ASSET)).output
+    assert "intake" in status and "✓ development" in status
+    _ok(cli("transition", ASSET, "development"))
+    blocked = cli("transition", ASSET, "validation")
+    assert blocked.exit_code != 0 and "FIN-DEV-001" in blocked.output
+    assert "✗ validation" in _ok(cli("status", ASSET)).output
+
+    out = cli(
+        "check",
+        "run",
+        ASSET,
+        "FIN-CPR-002",
+        "--data",
+        "decisions=decisions.csv",
+        "--score",
+        "pd_score",
+        "--param",
+        "group_col=group",
+        "--param",
+        "control_group=group_a",
+    )
+    assert out.exit_code == 2 and "fairness.adverse_impact_ratio" in out.output
+    assert (
+        cli(
+            "check",
+            "run",
+            ASSET,
+            "FIN-CPR-002",
+            "--data",
+            "decisions=decisions.csv",
+            "--param",
+            "oops",
+        ).exit_code
+        != 0
+    )
+    out = _ok(
+        cli(
+            "check",
+            "run",
+            ASSET,
+            "FIN-CPR-001",
+            "--data",
+            "decisions=decisions.csv",
+            "--param",
+            f"reason_map={reasons_yaml}",
+        )
+    )
+    assert "[PASS ] adverse_action.reason_mapping" in out.output
+
+    aging = _ok(cli("finding", "aging")).output
+    assert "standardized_mean_difference" in aging and "not due" in aging
+
+    _ok(cli("reasons", "derive", "decisions.csv", "--map", str(reasons_yaml), "-o", "reasons.csv"))
+    assert Path("reasons.csv").read_text().startswith("row,reason_1")
+    _ok(
+        cli(
+            "reasons",
+            "derive",
+            "decisions.csv",
+            "--map",
+            str(reasons_yaml),
+            "--text",
+            "--max-reasons",
+            "2",
+            "-o",
+            "texts.csv",
+        )
+    )
+    assert "Balances are high" in Path("texts.csv").read_text()
+    partial = Path("partial.yaml")
+    partial.write_text(
+        "reasons:\n  utilization: {code: R1, text: High balances relative to limits}\n"
+    )
+    out = _ok(
+        cli("reasons", "derive", "decisions.csv", "--map", "partial.yaml", "-o", "p.csv")
+    ).output
+    assert "UNMAPPED" in out
+    assert (
+        cli(
+            "reasons",
+            "derive",
+            "decisions.csv",
+            "--map",
+            "partial.yaml",
+            "--adverse-col",
+            "nope",
+            "-o",
+            "p.csv",
+        ).exit_code
+        != 0
+    )
+    assert (
+        cli(
+            "reasons",
+            "derive",
+            "decisions.csv",
+            "--map",
+            "partial.yaml",
+            "--prefix",
+            "shap_",
+            "-o",
+            "p.csv",
+        ).exit_code
+        != 0
+    )
+
+    _ok(cli("report", "render", "fair_lending_report", ASSET, "-o", "fair.md"))
+    assert "AIR" in Path("fair.md").read_text()
+    for kind in ("document", "approval"):
+        _ok(cli("evidence", "add", ASSET, "FIN-MON-004", "--type", kind, "--summary", "retire"))
+    _ok(cli("transition", ASSET, "retired"))
+    assert "No further transitions" in _ok(cli("status", ASSET)).output
+    assert cli("transition", "nope", "development").exit_code != 0
+    assert "No open findings" not in _ok(cli("finding", "aging", ASSET)).output
+
+
 def test_audit_verify_reports_problems(cli, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     _ok(cli("init"))
     _ok(cli("register", "A", "--owner", "o", "--use", "u", "--category", "traditional"))

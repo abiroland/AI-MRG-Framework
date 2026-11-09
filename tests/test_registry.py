@@ -88,9 +88,8 @@ def test_register_get_and_save(registry: Registry) -> None:
         registry.register(_asset("Beta", depends_on=["nope"]))
     renamed = registry.save(a.model_copy(update={"description": "changed"}))
     assert registry.get(a.id).description == "changed" == renamed.description
-    assert (
-        registry.set_status(a.id, LifecycleStatus.VALIDATION).status is LifecycleStatus.VALIDATION
-    )
+    with pytest.raises(RegistryError, match="workflow"):
+        registry.save(a.model_copy(update={"status": LifecycleStatus.APPROVED}))
     with pytest.raises(RegistryError, match="not registered"):
         registry.save(_asset("Ghost"))
 

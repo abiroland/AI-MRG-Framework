@@ -6,6 +6,19 @@ Packs are versioned separately; their changes are listed under **Packs**.
 
 ## [Unreleased]
 
+### Added (Phase 2a)
+- **Fair-lending checks**: `fairness.adverse_impact_ratio` (with two-proportion p-values) and `fairness.standardized_mean_difference`, using group labels or proxy membership probabilities.
+- **Adverse-action reasons** (`aimrg.adverse_action`): reason maps, reason derivation from per-applicant attributions, and checks `adverse_action.reason_mapping` and `adverse_action.reason_specificity`; `aimrg reasons derive`.
+- **Lifecycle workflow** (`aimrg.workflow`): gated transitions, independent-approver rule, `approved_with_limits`, approval evidence written automatically; `aimrg transition` and `aimrg status`. Lifecycle events are append-only.
+- **Findings aging**: default due dates by severity, `aimrg finding aging`, overdue section in the inventory report.
+- Report templates: `fair_lending_report`, `adverse_action_reasons`, `vendor_assessment`; lifecycle history in the validation report.
+- `aimrg check run --param key=value`.
+- `aimrg.datasets.synthetic_lending_decisions`; the example now runs the full lifecycle.
+
+### Changed
+- Registry schema version 2 (adds the `events` table); version-1 registries are migrated automatically on open.
+- `Registry.save()` no longer changes lifecycle status; use the workflow. `Registry.set_status()` was removed.
+
 ## [0.1.0] — Phase 1
 
 ### Added

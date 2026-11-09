@@ -32,6 +32,18 @@
 | {{ r.asset.name | cell }} | {{ r.asset.owner | cell }} | {{ r.track | cell }} | {{ r.tier | cell }} | {{ r.asset.status.value }} | {% if r.controls_required is not none %}{{ r.controls_complete }} / {{ r.controls_required }}{% else %}—{% endif %} | {{ r.open_findings }} |
 {% endfor %}
 
+## Overdue findings
+
+{% if overdue %}
+| Asset | Finding | Severity | Due | Days overdue | Title |
+|---|---|---|---|---|---|
+{% for o in overdue %}
+| {{ o.asset | cell }} | `{{ o.row.finding.id[:8] }}` | {{ o.row.finding.severity.value }} | {{ o.row.finding.due_date | cell }} | {{ o.row.days_overdue }} | {{ o.row.finding.title | cell }} |
+{% endfor %}
+{% else %}
+No overdue findings.
+{% endif %}
+
 {% if unclassified or untiered %}
 ## Action needed
 

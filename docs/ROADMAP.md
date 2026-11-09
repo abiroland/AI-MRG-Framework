@@ -47,13 +47,13 @@
 
 **Goal:** cover what most sets U.S. lending apart: fair lending and adverse action.
 
-- [ ] `fairness` extra: adverse impact ratio, standardized mean difference, pluggable protected-class proxy; fair-lending summary template
-- [ ] Fair-lending worked example on public HMDA data
-- [ ] `adverse_action` extra: reason codes from attributions, specificity/accuracy checks, reason-mapping template
+- [x] Fair-lending checks: adverse impact ratio, standardized mean difference, proxy-probability support; fair-lending summary template *(in core; no extra needed)*
+- [ ] Fair-lending worked example on public HMDA data *(a simulated example ships now)*
+- [x] Adverse-action reasons: derivation from attributions, mapping and specificity checks, methodology template, `aimrg reasons derive`
 - [ ] Ongoing monitoring: scheduled check runs, threshold profiles, breach → finding, webhook alerts
-- [ ] Findings tracking with aging reports
-- [ ] Lifecycle workflow engine with gated transitions and the `approved_with_limits` path
-- [ ] Third-party/vendor model controls and assessment template
+- [x] Findings tracking with aging reports
+- [x] Lifecycle workflow engine with gated transitions, separation of duties and the `approved_with_limits` path
+- [x] Third-party/vendor model controls and assessment template
 - [ ] REST API (FastAPI) with role-based access and separation-of-duties checks
 - [ ] Postgres support
 

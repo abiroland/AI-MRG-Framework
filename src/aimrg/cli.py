@@ -14,6 +14,7 @@ import click
 import pandas as pd
 
 from aimrg import __version__
+from aimrg.adverse_action import derive_reasons, load_reason_map, reason_texts
 from aimrg.checks import available_checks, get_check, run_control_checks
 from aimrg.core.classify import QUESTIONS, classify
 from aimrg.core.models import (
@@ -24,9 +25,11 @@ from aimrg.core.models import (
     EvidenceType,
     Finding,
     FindingStatus,
+    LifecycleStatus,
     Severity,
     TierOverride,
 )
+from aimrg.findings import aging, default_due_date
 from aimrg.packs.loader import (
     PackValidationError,
     builtin_pack_names,
@@ -39,6 +42,7 @@ from aimrg.registry import Registry, RegistryError, import_assets
 from aimrg.reports import available_templates, markdown_to_docx, render
 from aimrg.schema import export_schemas, stale_schemas
 from aimrg.tiering import assess_asset
+from aimrg.workflow import WorkflowError, next_steps, transition
 
 _OUTCOME_COLORS = {
     "pass": "green",
@@ -529,6 +533,13 @@ def _read_dataset(spec: str) -> tuple[str, pd.DataFrame]:
 @click.option("--target", default=None, help="Observed outcome column (1 = event).")
 @click.option("--score", default=None, help="Model score column (higher = riskier).")
 @click.option("--feature", "features", multiple=True, help="Feature column (repeatable).")
+@click.option(
+    "--param",
+    "param_specs",
+    multiple=True,
+    help="Check parameter key=value (repeatable), e.g. control_group=group_a, "
+    "group_col=group, reason_map=reasons.yaml.",
+)
 @click.option("--no-findings", is_flag=True, help="Do not open findings for failures.")
 @pass_state
 def check_run(
@@ -539,10 +550,12 @@ def check_run(
     target: str | None,
     score: str | None,
     features: tuple[str, ...],
+    param_specs: tuple[str, ...],
     no_findings: bool,
 ) -> None:
     """Run a control's automated checks and record the results as evidence."""
     datasets = dict(_read_dataset(spec) for spec in data_specs)
+    params = _parse_params(param_specs)
     with state.registry() as registry:
         try:
             runs = run_control_checks(
@@ -554,6 +567,7 @@ def check_run(
                 target=target,
                 score=score,
                 features=list(features) or None,
+                params=params,
                 open_findings=not no_findings,
             )
         except RegistryError as exc:
@@ -649,7 +663,7 @@ def finding_open(
                     title=title,
                     description=description,
                     owner=owner or record.owner,
-                    due_date=due.date() if due else None,
+                    due_date=due.date() if due else default_due_date(Severity(severity)),
                 )
             )
         except RegistryError as exc:
@@ -705,6 +719,161 @@ def finding_accept(state: _State, finding_id: str, accepted_by: str) -> None:
         except RegistryError as exc:
             raise _fail(exc) from exc
     click.secho(f"Risk accepted for finding {item.id[:8]} by {accepted_by}", fg="yellow")
+
+
+@finding.command("aging")
+@click.argument("asset", required=False)
+@pass_state
+def finding_aging(state: _State, asset: str | None) -> None:
+    """Open findings by age and how overdue they are."""
+    with state.registry() as registry:
+        try:
+            rows = aging(registry.findings(asset))
+            names = {a.id: a.name for a in registry.assets()}
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    if not rows:
+        click.echo("No open findings.")
+        return
+    _table(
+        ["Id", "Asset", "Severity", "Opened", "Due", "Days open", "Overdue", "Bucket", "Title"],
+        [
+            [
+                r.finding.id[:8],
+                names.get(r.finding.asset_id),
+                r.finding.severity.value,
+                r.finding.opened_at.date(),
+                r.finding.due_date,
+                r.days_open,
+                r.days_overdue,
+                r.bucket,
+                r.finding.title,
+            ]
+            for r in rows
+        ],
+    )
+    overdue = sum(r.days_overdue > 0 for r in rows)
+    click.echo(f"\n{len(rows)} open finding(s), {overdue} overdue.")
+
+
+# --- lifecycle ------------------------------------------------------------------
+
+
+@main.command(name="transition")
+@click.argument("asset")
+@click.argument("status", type=click.Choice([s.value for s in LifecycleStatus]))
+@click.option("--approver", default=None, help="Independent approver (approval decisions).")
+@click.option("--limits", default=None, help="Use limitations (approved_with_limits).")
+@click.option("--note", default="", help="Reason for the change.")
+@pass_state
+def transition_cmd(
+    state: _State, asset: str, status: str, approver: str | None, limits: str | None, note: str
+) -> None:
+    """Move an asset to a new lifecycle status, if its gate allows."""
+    with state.registry() as registry:
+        try:
+            event = transition(
+                registry,
+                asset,
+                status,
+                actor=state.actor,
+                approver=approver,
+                limits=limits,
+                note=note,
+            )
+        except WorkflowError as exc:
+            raise _fail(exc) from exc
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho(
+        f"{event.from_status.value} → {event.to_status.value}"
+        + (f" (approved by {event.approver})" if event.approver else ""),
+        fg="green",
+    )
+
+
+@main.command(name="status")
+@click.argument("asset")
+@pass_state
+def status_cmd(state: _State, asset: str) -> None:
+    """Show an asset's lifecycle history and what blocks each next step."""
+    with state.registry() as registry:
+        try:
+            record = registry.get(asset)
+            history = registry.events(record.id)
+            gates = next_steps(registry, record.id)
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho(f"{record.name}: {record.status.value}", bold=True)
+    if history:
+        click.echo("\nHistory:")
+        for e in history:
+            extra = f" by {e.actor}" + (f", approved by {e.approver}" if e.approver else "")
+            moved = f"{e.from_status.value} → {e.to_status.value}"
+            click.echo(f"  {e.occurred_at:%Y-%m-%d %H:%M}  {moved}{extra}")
+            if e.limits:
+                click.echo(f"      limits: {e.limits}")
+            if e.note:
+                click.echo(f"      note: {e.note}")
+    if not gates:
+        click.echo("\nNo further transitions.")
+        return
+    click.echo("\nNext steps:")
+    for gate in gates:
+        if gate.allowed:
+            click.secho(f"  ✓ {gate.target.value}", fg="green")
+        else:
+            click.secho(f"  ✗ {gate.target.value}", fg="red")
+            for blocker in gate.blockers:
+                click.echo(f"      - {blocker}")
+
+
+# --- adverse action -------------------------------------------------------------
+
+
+@main.group(name="reasons")
+def reasons_group() -> None:
+    """Adverse-action reasons (ECOA / Regulation B)."""
+
+
+@reasons_group.command("derive")
+@click.argument("data", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--map", "map_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.option("--prefix", default="contrib_", show_default=True, help="Attribution column prefix.")
+@click.option("--adverse-col", default="declined", show_default=True)
+@click.option("--max-reasons", default=4, show_default=True, type=click.IntRange(1, 10))
+@click.option("--text", is_flag=True, help="Output reason statements instead of codes.")
+@click.option("-o", "--output", type=click.Path(dir_okay=False, path_type=Path), required=True)
+def reasons_derive(
+    data: Path,
+    map_path: Path,
+    prefix: str,
+    adverse_col: str,
+    max_reasons: int,
+    text: bool,
+    output: Path,
+) -> None:
+    """Derive principal reasons for each adverse decision in DATA (a CSV of decisions
+    with per-factor attribution columns)."""
+    frame = pd.read_csv(data)
+    if adverse_col not in frame.columns:
+        raise click.ClickException(f"column {adverse_col!r} not found in {data}")
+    reason_map = load_reason_map(map_path)
+    adverse = frame[frame[adverse_col] == 1]
+    try:
+        codes = derive_reasons(adverse, reason_map, prefix=prefix, max_reasons=max_reasons)
+    except ValueError as exc:
+        raise _fail(exc) from exc
+    result = reason_texts(codes, reason_map) if text else codes
+    result.to_csv(output, index_label="row")
+    unmapped = int(
+        codes.apply(lambda c: c.astype("string").str.startswith("UNMAPPED:")).sum().sum()
+    )
+    click.secho(f"wrote reasons for {len(adverse)} adverse decision(s) to {output}", fg="green")
+    if unmapped:
+        click.secho(f"{unmapped} reason(s) have no statement in the map (UNMAPPED:...)", fg="red")
 
 
 # --- reports and audit ------------------------------------------------------------
@@ -858,6 +1027,18 @@ def schema_export(out_dir: Path, check: bool) -> None:
 
 
 # --- helpers --------------------------------------------------------------------
+
+
+def _parse_params(specs: tuple[str, ...]) -> dict[str, Any]:
+    import yaml
+
+    params: dict[str, Any] = {}
+    for spec in specs:
+        if "=" not in spec:
+            raise click.BadParameter(f"expected key=value, got {spec!r}", param_hint="--param")
+        key, raw = spec.split("=", 1)
+        params[key.strip()] = yaml.safe_load(raw) if raw.strip() else ""
+    return params
 
 
 def _quote(name: str) -> str:

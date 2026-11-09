@@ -38,6 +38,19 @@ def test_reports_render_and_never_claim_compliance(registry: Registry) -> None:
     assert "Pipe \\| Model" in inventory and "Not yet classified" in inventory
 
 
+def test_new_templates_render_without_results(registry: Registry) -> None:
+    asset = make_model_asset(registry, third_party=True)
+    registry.save(registry.get(asset.id).model_copy(update={"vendor": "Acme Scores"}))
+    fair = render(registry, "fair_lending_report", asset.id)
+    assert "No fair-lending check results" in fair
+    reasons = render(registry, "adverse_action_reasons", asset.id)
+    assert "No adverse-action check results" in reasons
+    vendor = render(registry, "vendor_assessment", asset.id)
+    assert "Acme Scores" in vendor and "FIN-TPM-001" in vendor
+    assert "No performance evidence" in vendor
+    assert "No overdue findings" in render(registry, "inventory_report")
+
+
 def test_markdown_to_docx(tmp_path: Path) -> None:
     docx = pytest.importorskip("docx")
     md = (
@@ -63,11 +76,21 @@ def test_end_to_end_example(tmp_path: Path) -> None:
     registry = module.main(tmp_path / "demo")
     try:
         assert registry.verify().ok
-        assert len(registry.findings()) == 2
-        assert (tmp_path / "demo" / "validation_report.docx").is_file()
-        report = (tmp_path / "demo" / "validation_report.md").read_text(encoding="utf-8")
+        findings = registry.findings()
+        assert len(findings) == 3
+        assert sum(f.status.value == "open" for f in findings) == 2
+        assert registry.get("Card Underwriting PD").status.value == "change_requested"
+        demo = tmp_path / "demo"
+        assert (demo / "validation_report.docx").is_file()
+        report = (demo / "validation_report.md").read_text(encoding="utf-8")
         assert "performance.discrimination_drift — FAIL" in report
         assert "performance.out_of_time — PASS" in report
+        assert "model-risk-committee@example-bank" in report  # lifecycle history
+        fair = (demo / "fair_lending_report.md").read_text(encoding="utf-8")
+        assert "fairness.standardized_mean_difference — FAIL" in fair
+        assert "Screening metrics only" in fair
+        reasons = (demo / "adverse_action_reasons.md").read_text(encoding="utf-8")
+        assert "adverse_action.reason_specificity — PASS" in reasons
     finally:
         registry.close()
     with pytest.raises(SystemExit):

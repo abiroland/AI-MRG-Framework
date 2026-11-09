@@ -4,32 +4,84 @@ Run from anywhere:
 
     python examples/credit-scorecard/run_example.py [OUTPUT_DIR]
 
-It creates OUTPUT_DIR (default: ./credit-scorecard-demo) containing:
+It creates OUTPUT_DIR (default: ./credit-scorecard-demo) containing the scored datasets
+as CSV, ``aimrg.db`` (the governance registry), and the generated reports.
 
-* the scored datasets as CSV (dev, test, oot, current),
-* ``aimrg.db``, the governance registry with all recorded evidence,
-* ``validation_report.md`` / ``.docx`` and ``inventory_report.md``.
+The story, step by step:
 
-The data are synthetic (see ``aimrg.datasets``). The model passes development and
-validation testing, then deteriorates in the monitored period, so monitoring checks fail
-and open findings automatically.
+1. The model is registered, classified and tiered (Tier 1), then moves to development.
+2. The developer records data-quality and performance testing; the model moves to
+   validation.
+3. The validator replicates performance, and runs fair-lending and adverse-action checks.
+   A fair-lending screening metric fails and opens a finding, which blocks approval.
+4. The fair-lending team documents its review; the finding is closed with that evidence,
+   and an independent approver approves the model.
+5. Implementation controls (adverse-action notices, Colorado disclosures) are evidenced;
+   the model goes into production.
+6. A later monitoring cycle finds drift. Checks fail, findings open, and a change request
+   is raised.
+
+All data are synthetic (see ``aimrg.datasets``).
 """
 
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
 from aimrg.checks import run_control_checks
 from aimrg.core.classify import classify
-from aimrg.core.models import AICategory, AssetRecord, EvidenceItem, EvidenceType
-from aimrg.datasets import FEATURES, SCORE, TARGET, synthetic_credit_portfolio
+from aimrg.core.models import (
+    AICategory,
+    AssetRecord,
+    EvidenceItem,
+    EvidenceType,
+    FindingStatus,
+)
+from aimrg.datasets import (
+    FEATURES,
+    SCORE,
+    TARGET,
+    synthetic_credit_portfolio,
+    synthetic_lending_decisions,
+)
 from aimrg.registry import Registry
 from aimrg.reports import markdown_to_docx, render
 from aimrg.tiering import assess_asset
+from aimrg.workflow import transition
 
-ACTOR_DEV = "developer@example-bank"
-ACTOR_VAL = "validator@example-bank"
+DEVELOPER = "developer@example-bank"
+VALIDATOR = "validator@example-bank"
+FAIR_LENDING = "fair-lending@example-bank"
+APPROVER = "model-risk-committee@example-bank"
+HERE = Path(__file__).resolve().parent
+
+
+def _record(
+    registry: Registry,
+    asset_id: str,
+    control_id: str,
+    kind: EvidenceType,
+    summary: str,
+    actor: str,
+    content: bytes | None = None,
+) -> EvidenceItem:
+    uri = digest = None
+    if content is not None:
+        uri, digest = registry.store_artifact(content, suffix=".md")
+    return registry.add_evidence(
+        EvidenceItem(
+            asset_id=asset_id,
+            control_id=control_id,
+            type=kind,
+            summary=summary,
+            payload_uri=uri,
+            payload_sha256=digest,
+            pack_version=registry.pack.manifest.ref,
+            actor=actor,
+        )
+    )
 
 
 def main(out_dir: Path) -> Registry:
@@ -38,15 +90,19 @@ def main(out_dir: Path) -> Registry:
     if db.exists():
         sys.exit(f"{db} already exists; choose an empty output directory")
 
-    # 1. Data: scored samples for development, hold-out, out-of-time and monitoring.
+    # Data: scored samples, and application decisions with attributions and proxy groups.
     data = synthetic_credit_portfolio(seed=7)
     for role, frame in data.items():
         frame.to_csv(out_dir / f"{role}.csv", index=False)
+    decisions = synthetic_lending_decisions(seed=7)
+    decisions.to_csv(out_dir / "decisions.csv", index=False)
+    reason_map = out_dir / "reasons.yaml"
+    shutil.copyfile(HERE / "reasons.yaml", reason_map)
 
-    # 2. Registry bound to the U.S. banking pack.
     registry = Registry.create(db, pack="fin-us-banking")
+    common = {"target": TARGET, "score": SCORE, "features": FEATURES}
 
-    # 3. Inventory: an upstream feature pipeline and the PD model that uses it.
+    # 1. Inventory, classification, tiering.
     bureau = registry.register(
         AssetRecord(
             name="Bureau Attribute Pipeline",
@@ -66,8 +122,6 @@ def main(out_dir: Path) -> Registry:
             depends_on=[bureau.id],
         )
     )
-
-    # 4. Classification and risk tiering.
     registry.set_classification(
         bureau.id,
         classify(
@@ -91,96 +145,211 @@ def main(out_dir: Path) -> Registry:
         registry,
         bureau.id,
         {"complexity": 1, "assumptions": 1, "data_quality": 2, "exposure": 3, "purpose": 2},
-        assessed_by=ACTOR_VAL,
+        assessed_by=VALIDATOR,
     )
     assess_asset(
         registry,
         model.id,
         {"complexity": 3, "assumptions": 3, "data_quality": 2, "exposure": 5, "purpose": 5},
-        assessed_by=ACTOR_VAL,
+        assessed_by=VALIDATOR,
     )
+    transition(registry, model.id, "development", actor=DEVELOPER)
 
-    # 5. Development testing, recorded by the developer.
-    common = {"target": TARGET, "score": SCORE, "features": FEATURES}
+    # 2. Development testing and documentation.
+    _record(
+        registry,
+        model.id,
+        "FIN-DEV-001",
+        EvidenceType.DOCUMENT,
+        "Model purpose and intended-use statement.",
+        DEVELOPER,
+        b"# Purpose\n",
+    )
     run_control_checks(
         registry,
         model.id,
         "FIN-DEV-002",
         {"dev": data["dev"], "population": data["oot"]},
-        actor=ACTOR_DEV,
+        actor=DEVELOPER,
         **common,
+    )
+    _record(
+        registry,
+        model.id,
+        "FIN-DEV-002",
+        EvidenceType.DOCUMENT,
+        "Development data review.",
+        DEVELOPER,
+        b"# Data review\n",
     )
     run_control_checks(
         registry,
         model.id,
         "FIN-DEV-003",
         {"dev": data["dev"], "test": data["test"], "oot": data["oot"]},
-        actor=ACTOR_DEV,
+        actor=DEVELOPER,
         **common,
     )
+    _record(
+        registry,
+        model.id,
+        "FIN-DEV-003",
+        EvidenceType.DOCUMENT,
+        "Development testing report.",
+        DEVELOPER,
+        b"# Testing\n",
+    )
+    transition(registry, model.id, "validation", actor=DEVELOPER)
 
-    # 6. Independent validation, recorded by the validator.
+    # 3. Independent validation, fair lending and adverse-action review.
     run_control_checks(
         registry,
         model.id,
         "FIN-VAL-003",
         {"dev": data["dev"], "oot": data["oot"]},
-        actor=ACTOR_VAL,
+        actor=VALIDATOR,
         **common,
     )
-    memo_uri, memo_sha = registry.store_artifact(
-        b"# Validation memo (example)\n\nNarrative written by the validator.\n", suffix=".md"
-    )
+    memo = b"# Validation memo (example)\n\nNarrative written by the validator.\n"
     for control_id, kind, summary in [
         ("FIN-VAL-003", EvidenceType.ATTESTATION, "Out-of-time results independently replicated."),
         ("FIN-VAL-001", EvidenceType.DOCUMENT, "Validation memo v1."),
         ("FIN-VAL-001", EvidenceType.ATTESTATION, "Validator independent of development."),
-        ("FIN-VAL-002", EvidenceType.DOCUMENT, "Conceptual soundness review (in memo §3)."),
+        ("FIN-VAL-002", EvidenceType.DOCUMENT, "Conceptual soundness review (memo section 3)."),
         ("FIN-VAL-002", EvidenceType.ATTESTATION, "Conceptual soundness reviewed."),
     ]:
-        registry.add_evidence(
-            EvidenceItem(
-                asset_id=model.id,
-                control_id=control_id,
-                type=kind,
-                summary=summary,
-                payload_uri=memo_uri if kind is EvidenceType.DOCUMENT else None,
-                payload_sha256=memo_sha if kind is EvidenceType.DOCUMENT else None,
-                pack_version=registry.pack.manifest.ref,
-                actor=ACTOR_VAL,
-            )
+        _record(
+            registry,
+            model.id,
+            control_id,
+            kind,
+            summary,
+            VALIDATOR,
+            memo if kind is EvidenceType.DOCUMENT else None,
         )
 
-    # 7. A monitoring cycle: the population and performance have drifted.
+    run_control_checks(
+        registry,
+        model.id,
+        "FIN-CPR-001",
+        {"decisions": decisions},
+        actor=VALIDATOR,
+        params={"reason_map": str(reason_map)},
+    )
+    _record(
+        registry,
+        model.id,
+        "FIN-CPR-001",
+        EvidenceType.DOCUMENT,
+        "Adverse-action reason methodology.",
+        VALIDATOR,
+        b"# Reason methodology\n",
+    )
+    fairness_runs = run_control_checks(
+        registry,
+        model.id,
+        "FIN-CPR-002",
+        {"decisions": decisions},
+        actor=FAIR_LENDING,
+        score=SCORE,
+        params={"group_prob_prefix": "p_", "control_group": "group_a"},
+    )
+    review = _record(
+        registry,
+        model.id,
+        "FIN-CPR-002",
+        EvidenceType.DOCUMENT,
+        "Fair-lending review: drivers of the score gap, business justification and "
+        "less-discriminatory-alternative search.",
+        FAIR_LENDING,
+        b"# Fair-lending review (example)\n",
+    )
+    # The failed screening metric opened a finding; the review is its remediation evidence.
+    for run in fairness_runs:
+        if run.finding is not None:
+            registry.save_finding(
+                run.finding.model_copy(
+                    update={"status": FindingStatus.CLOSED, "remediation_evidence": [review.id]}
+                )
+            )
+    transition(
+        registry,
+        model.id,
+        "approved",
+        actor=VALIDATOR,
+        approver=APPROVER,
+        note="Approved by model risk committee.",
+    )
+
+    # 4. Implementation, then production.
+    _record(
+        registry,
+        model.id,
+        "FIN-CPR-004",
+        EvidenceType.DOCUMENT,
+        "Adverse-action notice template with FCRA disclosures.",
+        DEVELOPER,
+        b"# Notice\n",
+    )
+    _record(
+        registry,
+        model.id,
+        "FIN-CPR-005",
+        EvidenceType.DOCUMENT,
+        "Colorado ADMT consumer notice.",
+        DEVELOPER,
+        b"# CO notice\n",
+    )
+    _record(
+        registry,
+        model.id,
+        "FIN-CPR-005",
+        EvidenceType.ATTESTATION,
+        "Colorado obligations reviewed by compliance.",
+        VALIDATOR,
+    )
+    transition(registry, model.id, "in_production", actor=DEVELOPER)
+
+    # 5. A monitoring cycle finds drift; a change request follows.
     run_control_checks(
         registry,
         model.id,
         "FIN-MON-001",
         {"baseline": data["dev"], "current": data["current"]},
-        actor=ACTOR_VAL,
+        actor=VALIDATOR,
         **common,
     )
     run_control_checks(
+        registry, model.id, "FIN-MON-002", {"current": data["current"]}, actor=VALIDATOR, **common
+    )
+    transition(
         registry,
         model.id,
-        "FIN-MON-002",
-        {"current": data["current"]},
-        actor=ACTOR_VAL,
-        **common,
+        "change_requested",
+        actor=VALIDATOR,
+        note="Recalibrate: discrimination and calibration deteriorated in monitoring.",
     )
 
-    # 8. Documents and an integrity check of the audit trail.
-    report = render(registry, "validation_report", model.id)
-    (out_dir / "validation_report.md").write_text(report, encoding="utf-8")
-    markdown_to_docx(report, out_dir / "validation_report.docx", title="Validation report")
-    inventory = render(registry, "inventory_report")
-    (out_dir / "inventory_report.md").write_text(inventory, encoding="utf-8")
+    # 6. Documents and an integrity check.
+    for template in ("validation_report", "fair_lending_report", "adverse_action_reasons"):
+        text = render(registry, template, model.id)
+        (out_dir / f"{template}.md").write_text(text, encoding="utf-8")
+    markdown_to_docx(
+        (out_dir / "validation_report.md").read_text(encoding="utf-8"),
+        out_dir / "validation_report.docx",
+        title="Validation report",
+    )
+    (out_dir / "inventory_report.md").write_text(
+        render(registry, "inventory_report"), encoding="utf-8"
+    )
 
     audit = registry.verify()
+    open_findings = [f for f in registry.findings(model.id) if f.status is FindingStatus.OPEN]
     print(f"Registry:          {db}")
+    print(f"Status:            {registry.get(model.id).status.value}")
     print(f"Evidence recorded: {audit.evidence_checked} item(s); chains intact: {audit.ok}")
-    print(f"Open findings:     {len(registry.findings(model.id))}")
-    print(f"Reports:           {out_dir / 'validation_report.md'}, .docx, inventory_report.md")
+    print(f"Open findings:     {len(open_findings)}")
+    print(f"Reports:           {out_dir}/*.md, validation_report.docx")
     return registry
 
 
