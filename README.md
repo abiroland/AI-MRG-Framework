@@ -2,7 +2,9 @@
 
 **An open-source, full-lifecycle AI and model risk governance toolkit for U.S. regulated industries — starting with financial services.**
 
-> Status: **design phase (v0.0)**. This repository currently holds the architecture, regulatory mapping and roadmap. Code lands in Phase 1 — see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+> Status: **pre-alpha (Phase 0 complete)**. The data models, pack format, a draft `fin-us-banking` pack and the `aimrg` CLI are in place. Inventory, tiering, checks and reporting land in Phase 1. See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
+
+[![CI](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml)
 
 ---
 
@@ -37,6 +39,19 @@ AI-MRG turns these sources into **versioned control catalogs, automated checks, 
 - Not a replacement for independent validation or human judgment. It structures and evidences that work.
 - Not a hosted service. You run it yourself.
 
+## Quick start
+
+```bash
+git clone https://github.com/abiroland/ai-mrg-framework
+cd ai-mrg-framework
+pip install -e ".[dev]"
+
+aimrg pack list
+aimrg pack validate fin-us-banking
+```
+
+See [Getting started](docs/getting-started.md) for using the models from Python, and [Writing packs](docs/packs.md) for the control format.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md): system design, modules, data model, interfaces
@@ -48,6 +63,10 @@ AI-MRG turns these sources into **versioned control catalogs, automated checks, 
 
 - **Financial services (U.S. banking and consumer lending)**: first, v0.1–v1.0
 - **Healthcare**: planned as a second sector pack on the same core, after v1.0
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Regulatory content changes must cite a primary source.
 
 ## License
 

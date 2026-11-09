@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-thresholds.schema.json",
+  "$defs": {
+    "Threshold": {
+      "additionalProperties": false,
+      "properties": {
+        "warn": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Warn"
+        },
+        "fail": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fail"
+        },
+        "direction": {
+          "description": "Which side is bad.",
+          "pattern": "^(above|below)$",
+          "title": "Direction",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "direction"
+      ],
+      "title": "Threshold",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "thresholds": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Threshold"
+      },
+      "minProperties": 1,
+      "title": "Thresholds",
+      "type": "object"
+    }
+  },
+  "required": [
+    "thresholds"
+  ],
+  "title": "ThresholdsFile",
+  "type": "object"
+}

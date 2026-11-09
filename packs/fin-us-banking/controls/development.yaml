@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-DEV-001
+    title: Statement of purpose and intended use
+    objective: >
+      Document the model's purpose, business use, intended population and known limitations
+      before development, incorporating user input on assumptions.
+    lifecycle_stage: development
+    applies_when: track == "model"
+    frequency: once
+    evidence_required: [document]
+    references:
+      - { source: SR-26-2, section: Model development }
+      - { source: NIST-AI-RMF-1.0, section: MAP 1.1 }
+
+  - id: FIN-DEV-002
+    title: Development data quality review
+    objective: >
+      Assess the relevance, completeness and quality of development data, including
+      missingness, ranges and representativeness of the intended population.
+    lifecycle_stage: development
+    applies_when: track == "model" and tier <= 3
+    frequency: once
+    evidence_required: [check_result, document]
+    checks:
+      - id: data.quality_summary
+      - id: data.representativeness
+    references:
+      - { source: SR-26-2, section: Model development }
+
+  - id: FIN-DEV-003
+    title: Developmental performance testing
+    objective: >
+      Test performance on out-of-sample and out-of-time data and compare alternative
+      assumptions, with rigor proportionate to complexity and materiality.
+    lifecycle_stage: development
+    applies_when: track == "model" and tier <= 3
+    frequency: once
+    evidence_required: [check_result, document]
+    checks:
+      - id: performance.out_of_sample
+      - id: performance.out_of_time
+      - id: sensitivity.alternative_assumptions
+    references:
+      - { source: SR-26-2, section: Model development }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2 }

@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-GOV-001
+    title: Model and AI risk management policy
+    objective: >
+      Maintain a policy that sets risk expectations, a framework for assessing model and
+      AI-system risk, and procedures for monitoring and control, with clear accountability.
+    lifecycle_stage: governance
+    frequency: annually
+    evidence_required: [document, approval]
+    references:
+      - { source: SR-26-2, section: "Governance, policies and controls" }
+      - { source: NIST-AI-RMF-1.0, section: GOVERN 1 }
+    guidance: >
+      Scale the policy to the institution's size and model risk profile. Cover both the
+      model track and the AI-system track, since SR 26-2 does not cover generative or
+      agentic AI.
+
+  - id: FIN-GOV-002
+    title: Separation of development and validation
+    objective: >
+      Ensure reporting lines and incentives do not compromise the independence of validation
+      from development.
+    lifecycle_stage: governance
+    frequency: annually
+    evidence_required: [document, attestation]
+    references:
+      - { source: SR-26-2, section: "Governance, policies and controls" }
+
+  - id: FIN-GOV-003
+    title: Internal audit review of the governance program
+    objective: >
+      Internal audit evaluates whether model and AI risk management practices are effective
+      and implemented as designed, without duplicating development or validation work.
+    lifecycle_stage: governance
+    frequency: annually
+    evidence_required: [document]
+    references:
+      - { source: SR-26-2, section: "Governance, policies and controls" }
+      - { source: NIST-AI-RMF-1.0, section: GOVERN 1.5 }

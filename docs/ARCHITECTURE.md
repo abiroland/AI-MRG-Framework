@@ -71,7 +71,7 @@
 | **EvidenceItem** | Proof that a control was done | `control_id`, `asset_id`, `type` (check_result / document / attestation / approval), `payload_uri`, `sha256`, `prev_hash`, `actor`, `timestamp` |
 | **Finding** | A problem raised during validation, monitoring or audit | `severity`, `control_id`, `description`, `owner`, `due_date`, `status`, `remediation_evidence[]` |
 | **LifecycleEvent** | A state change | `from_stage`, `to_stage`, `approver`, `conditions` (e.g. "use with limits") |
-| **Pack** | Versioned sector content | `controls/`, `checks config`, `templates/`, `mappings/`, `tiering profile`, `version` |
+| **Pack** | Versioned sector content | `pack.yaml`, `sources.yaml`, `controls/`, `tiering/`, `thresholds/`, `templates/` |
 
 All entities are Pydantic v2 models, and their JSON Schemas are published so other tools can interoperate.
 
@@ -169,12 +169,16 @@ asset = reg.register(
     business_use=["credit_decision"],
     ai_category="ml_non_generative",
 )
-asset.assess_risk(profile="fin-us-banking/default")      # → Tier 1
+asset.assess_risk(profile="fin-us-banking/default")  # → Tier 1
 plan = asset.required_controls(stage="validation")
 
 results = aimrg.run_checks(
-    asset, plan,
-    model=model, train=train_df, test=test_df, oot=oot_df,
+    asset,
+    plan,
+    model=model,
+    train=train_df,
+    test=test_df,
+    oot=oot_df,
     protected_proxy="bisg",
 )
 asset.render("validation_report", fmt="docx")
@@ -209,8 +213,10 @@ asset.render("validation_report", fmt="docx")
 ```
 packs/fin-us-banking/
 ├── pack.yaml                 # name, version, effective-as-of date, maintainers
+├── sources.yaml              # source register cited by controls
 ├── tiering/default.yaml      # factors, weights, cut-offs
 ├── controls/
+│   ├── governance.yaml
 │   ├── inventory.yaml
 │   ├── development.yaml
 │   ├── validation.yaml
@@ -218,28 +224,27 @@ packs/fin-us-banking/
 │   ├── third_party.yaml
 │   ├── consumer_protection.yaml   # adverse action, fair lending, ADMT
 │   └── ai_systems.yaml            # GenAI/agentic track
-├── mappings/                 # control → source citations (see REGULATORY_MAP.md)
 ├── thresholds/default.yaml   # PSI, AIR, AUC-drop alert levels (institution-tunable)
 └── templates/                # Jinja2 document templates
 ```
 
-Example control (illustrative):
+Example control (from the shipped pack):
 
 ```yaml
-- id: FIN-VAL-004
-  title: Out-of-time performance testing
+- id: FIN-VAL-003
+  title: Independent replication of out-of-time performance
   objective: >
     Confirm the model performs as expected on data from a period not used in development.
   lifecycle_stage: validation
-  applies_when: track == "model" and tier <= 3
+  applies_when: track == "model" and tier <= 2
   frequency: at_validation
   checks:
     - id: performance.oot_comparison
       thresholds: { gini_drop_warn: 0.05, gini_drop_fail: 0.10 }
-  evidence_required: [check_result, validator_attestation]
+  evidence_required: [check_result, attestation]
   references:
     - source: SR-26-2
-      section: "Model development — testing"
+      section: Model validation
     - source: NIST-AI-RMF-1.0
       section: "MEASURE 2"
 ```

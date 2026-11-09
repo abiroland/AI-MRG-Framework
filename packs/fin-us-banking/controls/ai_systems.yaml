@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+# AI-system track: generative and agentic AI, which SR 26-2 places outside its scope.
+controls:
+  - id: FIN-AIS-001
+    title: AI use-case risk assessment
+    objective: >
+      Document the use case, context, affected parties, and the likelihood and magnitude
+      of potential impacts, including GenAI-specific risks such as confabulation, data
+      leakage and harmful output.
+    lifecycle_stage: inventory
+    applies_when: track == "ai_system"
+    frequency: on_change
+    evidence_required: [document, approval]
+    references:
+      - { source: NIST-AI-RMF-1.0, section: MAP 1; MAP 5.1 }
+      - { source: NIST-AI-600-1 }
+
+  - id: FIN-AIS-002
+    title: Human oversight design
+    objective: >
+      Define who reviews AI outputs, when human approval is required, and how users can
+      override or escalate, proportionate to the impact of the use case.
+    lifecycle_stage: development
+    applies_when: track == "ai_system"
+    frequency: once
+    evidence_required: [document]
+    references:
+      - { source: NIST-AI-RMF-1.0, section: GOVERN 3.2; MAP 3.5 }
+      - { source: NIST-AI-600-1 }
+
+  - id: FIN-AIS-003
+    title: Pre-deployment evaluation
+    objective: >
+      Evaluate the system against its intended use before deployment, including accuracy
+      or groundedness, harmful-output testing, privacy leakage and prompt-injection
+      resistance as relevant.
+    lifecycle_stage: validation
+    applies_when: track == "ai_system"
+    frequency: at_validation
+    evidence_required: [check_result, document]
+    checks:
+      - id: genai.evaluation_suite
+      - id: genai.red_team_log
+    references:
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2 }
+      - { source: NIST-AI-600-1 }
+
+  - id: FIN-AIS-004
+    title: Agent permissions and action logging
+    objective: >
+      Limit agentic systems to the minimum tools and permissions needed, log every action
+      they take, and review permissions periodically.
+    lifecycle_stage: implementation
+    applies_when: ai_category == "agentic"
+    frequency: quarterly
+    evidence_required: [check_result, document]
+    checks:
+      - id: genai.agent_permission_audit
+    references:
+      - { source: NIST-AI-RMF-1.0, section: MANAGE 2 }
+
+  - id: FIN-AIS-005
+    title: AI incident tracking and response
+    objective: >
+      Record, investigate and communicate AI incidents and errors, and feed lessons back
+      into the system's risk assessment.
+    lifecycle_stage: monitoring
+    applies_when: track == "ai_system"
+    frequency: continuous
+    evidence_required: [document]
+    references:
+      - { source: NIST-AI-RMF-1.0, section: MANAGE 4.3 }
+      - { source: NIST-AI-600-1 }
+
+  - id: FIN-AIS-006
+    title: AI-assisted credit communications keep consumer-protection duties
+    objective: >
+      Where a generative or agentic system drafts or delivers credit decisions or notices,
+      confirm the content remains specific, accurate and consistent with the underlying
+      decision.
+    lifecycle_stage: validation
+    applies_when: track == "ai_system" and "credit_decision" in uses
+    frequency: at_validation
+    evidence_required: [document, attestation]
+    references:
+      - { source: ECOA-REGB, section: 12 CFR 1002.9 }
+      - { source: CFPB-2023-03 }

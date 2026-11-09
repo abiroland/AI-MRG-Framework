@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-CPR-001
+    title: Specific and accurate adverse-action reasons
+    objective: >
+      Derive the principal reasons for adverse action from the factors the model actually
+      scored, and confirm they are specific and accurate rather than the nearest generic
+      sample-form reason.
+    lifecycle_stage: validation
+    applies_when: '"credit_decision" in uses'
+    frequency: at_validation
+    evidence_required: [check_result, document]
+    checks:
+      - id: adverse_action.reason_mapping
+      - id: adverse_action.reason_specificity
+    references:
+      - { source: ECOA-REGB, section: 12 CFR 1002.9 }
+      - { source: CFPB-2022-03 }
+      - { source: CFPB-2023-03 }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2.9 }
+    guidance: >
+      The complexity or opacity of a model does not relieve the creditor of this obligation.
+      Map engineered and non-traditional variables to reasons a consumer can understand.
+
+  - id: FIN-CPR-002
+    title: Fair-lending disparate-impact testing
+    objective: >
+      Test outcomes for disparities across protected classes (using a documented proxy
+      method where class data are unavailable) and document any search for less
+      discriminatory alternatives.
+    lifecycle_stage: validation
+    applies_when: '"credit_decision" in uses'
+    frequency: at_validation
+    evidence_required: [check_result, document]
+    checks:
+      - id: fairness.adverse_impact_ratio
+      - id: fairness.standardized_mean_difference
+    references:
+      - { source: ECOA-REGB }
+      - { source: FHA, section: Where the credit is residential real estate-related }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2.11 }
+    guidance: >
+      Screening metrics are a starting point, not a legal conclusion. Involve fair-lending
+      counsel in interpreting results.
+
+  - id: FIN-CPR-003
+    title: Ongoing fair-lending monitoring
+    objective: Repeat disparity testing on production decisions.
+    lifecycle_stage: monitoring
+    applies_when: '"credit_decision" in uses and tier <= 3'
+    frequency: annually
+    evidence_required: [check_result]
+    checks:
+      - id: fairness.adverse_impact_ratio
+    references:
+      - { source: ECOA-REGB }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2.11 }
+
+  - id: FIN-CPR-004
+    title: Consumer-report adverse-action disclosures
+    objective: >
+      When a consumer report contributed to the decision, include the disclosures FCRA
+      requires in the adverse-action notice.
+    lifecycle_stage: implementation
+    applies_when: '"credit_decision" in uses'
+    frequency: on_change
+    evidence_required: [document]
+    references:
+      - { source: FCRA, section: 15 U.S.C. 1681m }
+
+  - id: FIN-CPR-005
+    title: Colorado automated decision-making disclosures
+    objective: >
+      For covered automated decision-making technology used in consequential decisions
+      about Colorado consumers, provide the notices and consumer rights the law requires.
+    lifecycle_stage: implementation
+    applies_when: consequential_decision and "US-CO" in jurisdictions
+    frequency: on_change
+    evidence_required: [document, attestation]
+    references:
+      - { source: CO-SB26-189 }
+    guidance: >
+      Effective 2027-01-01. Verify obligations against the enacted text, any Attorney
+      General rules, and the status of pending litigation before relying on this control.

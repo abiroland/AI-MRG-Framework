@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json",
+  "$defs": {
+    "CheckSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "title": "Params",
+          "type": "object"
+        },
+        "thresholds": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Thresholds",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "CheckSpec",
+      "type": "object"
+    },
+    "Control": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Z]{2,6}-[A-Z]{2,6}-\\d{3}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "objective": {
+          "minLength": 1,
+          "title": "Objective",
+          "type": "string"
+        },
+        "lifecycle_stage": {
+          "$ref": "#/$defs/ControlStage"
+        },
+        "applies_when": {
+          "default": "true",
+          "description": "Applicability expression; see aimrg.packs.expr.",
+          "minLength": 1,
+          "title": "Applies When",
+          "type": "string"
+        },
+        "frequency": {
+          "$ref": "#/$defs/Frequency"
+        },
+        "evidence_required": {
+          "items": {
+            "$ref": "#/$defs/EvidenceType"
+          },
+          "minItems": 1,
+          "title": "Evidence Required",
+          "type": "array"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CheckSpec"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "minItems": 1,
+          "title": "References",
+          "type": "array"
+        },
+        "guidance": {
+          "default": "",
+          "description": "Practical notes for implementers.",
+          "title": "Guidance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "objective",
+        "lifecycle_stage",
+        "frequency",
+        "evidence_required",
+        "references"
+      ],
+      "title": "Control",
+      "type": "object"
+    },
+    "ControlStage": {
+      "enum": [
+        "governance",
+        "inventory",
+        "development",
+        "validation",
+        "approval",
+        "implementation",
+        "monitoring",
+        "change",
+        "retirement"
+      ],
+      "title": "ControlStage",
+      "type": "string"
+    },
+    "EvidenceType": {
+      "enum": [
+        "check_result",
+        "document",
+        "attestation",
+        "approval"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    },
+    "Frequency": {
+      "enum": [
+        "once",
+        "at_validation",
+        "on_change",
+        "continuous",
+        "monthly",
+        "quarterly",
+        "annually"
+      ],
+      "title": "Frequency",
+      "type": "string"
+    },
+    "Reference": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "pattern": "^[A-Z0-9][A-Z0-9.\\-]*$",
+          "title": "Source",
+          "type": "string"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Section"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Reference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "controls": {
+      "items": {
+        "$ref": "#/$defs/Control"
+      },
+      "minItems": 1,
+      "title": "Controls",
+      "type": "array"
+    }
+  },
+  "required": [
+    "controls"
+  ],
+  "title": "ControlsFile",
+  "type": "object"
+}

@@ -2,7 +2,7 @@
 
 *Effective-as-of: November 2026 · Informational only, not legal advice. Check every citation against the primary source before relying on it.*
 
-This map shows which external sources each AI-MRG control area draws on. Control-level citations live in `packs/fin-us-banking/mappings/`.
+This map shows which external sources each AI-MRG control area draws on. Control-level citations live in each control's `references` in `packs/fin-us-banking/controls/`.
 
 ---
 

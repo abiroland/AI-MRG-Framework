@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-VAL-001
+    title: Independent validation before first use
+    objective: >
+      Validate the model before first use with rigor proportionate to its approach, use and
+      materiality, performed by reviewers independent of development.
+    lifecycle_stage: validation
+    applies_when: track == "model" and tier <= 3
+    frequency: at_validation
+    evidence_required: [document, attestation]
+    references:
+      - { source: SR-26-2, section: Model validation }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2 }
+    guidance: >
+      If an urgent need requires use before validation completes, use the
+      approved_with_limits path: document limits, inform stakeholders and increase
+      monitoring until validation is done.
+
+  - id: FIN-VAL-002
+    title: Conceptual soundness review
+    objective: >
+      Evaluate the design, key choices, assumptions, data selection and developmental
+      testing against the stated purpose.
+    lifecycle_stage: validation
+    applies_when: track == "model" and tier <= 3
+    frequency: at_validation
+    evidence_required: [document, attestation]
+    references:
+      - { source: SR-26-2, section: Model validation }
+
+  - id: FIN-VAL-003
+    title: Independent replication of out-of-time performance
+    objective: >
+      Confirm the model performs as expected on data from a period not used in development.
+    lifecycle_stage: validation
+    applies_when: track == "model" and tier <= 2
+    frequency: at_validation
+    evidence_required: [check_result, attestation]
+    checks:
+      - id: performance.out_of_time
+        thresholds: { gini_drop_warn: 0.05, gini_drop_fail: 0.10 }
+    references:
+      - { source: SR-26-2, section: Model validation }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2 }
+
+  - id: FIN-VAL-004
+    title: Approval decision with conditions
+    objective: >
+      Record the approval, approval-with-limits or rejection decision, the approver, and any
+      conditions or use limitations.
+    lifecycle_stage: approval
+    applies_when: track == "model" or track == "ai_system"
+    frequency: at_validation
+    evidence_required: [approval]
+    references:
+      - { source: SR-26-2, section: Model validation }
+      - { source: NIST-AI-RMF-1.0, section: MANAGE 1.1 }
+
+  - id: FIN-VAL-005
+    title: Re-validation for new or changed use
+    objective: >
+      Analyze any use beyond the original intended purpose, and review controls, before the
+      new use begins.
+    lifecycle_stage: change
+    applies_when: track == "model"
+    frequency: on_change
+    evidence_required: [document, approval]
+    references:
+      - { source: SR-26-2, section: Model development }

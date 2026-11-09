@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-TPM-001
+    title: Vendor model due diligence
+    objective: >
+      Understand the vendor model's conceptual soundness, design, development data and
+      performance, even when proprietary code or data are withheld.
+    lifecycle_stage: validation
+    applies_when: third_party
+    frequency: at_validation
+    evidence_required: [document, attestation]
+    references:
+      - { source: SR-26-2, section: Third-party models }
+      - { source: TPRM-2023 }
+      - { source: NIST-AI-RMF-1.0, section: GOVERN 6.1 }
+
+  - id: FIN-TPM-002
+    title: Document and validate customizations
+    objective: >
+      Document, justify and evaluate any institution-specific customization of a vendor
+      model as part of validation.
+    lifecycle_stage: validation
+    applies_when: third_party and track == "model"
+    frequency: on_change
+    evidence_required: [document]
+    references:
+      - { source: SR-26-2, section: Third-party models }
+
+  - id: FIN-TPM-003
+    title: Ongoing monitoring of vendor models
+    objective: >
+      Monitor vendor model performance and outcomes in the institution's own portfolio, and
+      track vendor changes.
+    lifecycle_stage: monitoring
+    applies_when: third_party
+    frequency: annually
+    evidence_required: [check_result, document]
+    checks:
+      - id: performance.discrimination_drift
+    references:
+      - { source: SR-26-2, section: Third-party models }
+      - { source: TPRM-2023 }

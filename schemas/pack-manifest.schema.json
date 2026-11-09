@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-manifest.schema.json",
+  "$defs": {
+    "Sector": {
+      "enum": [
+        "financial_services",
+        "healthcare",
+        "cross_sector"
+      ],
+      "title": "Sector",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "pattern": "^[a-z0-9][a-z0-9\\-]*$",
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.\\-]+)?(?:\\+[0-9A-Za-z.\\-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "effective_as_of": {
+      "description": "Date the regulatory content reflects.",
+      "format": "date",
+      "title": "Effective As Of",
+      "type": "string"
+    },
+    "sector": {
+      "$ref": "#/$defs/Sector"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "maintainers": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Maintainers",
+      "type": "array"
+    },
+    "reviewed": {
+      "default": false,
+      "description": "True once practitioner reviewers have signed off.",
+      "title": "Reviewed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "effective_as_of",
+    "sector",
+    "title",
+    "maintainers"
+  ],
+  "title": "PackManifest",
+  "type": "object"
+}

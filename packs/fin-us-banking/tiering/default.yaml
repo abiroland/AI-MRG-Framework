@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-tiering-profile.schema.json
+id: default
+description: >
+  Default risk-tiering profile. Factors follow the risk considerations in SR 26-2 (inherent
+  risk, exposure, purpose; materiality from exposure and purpose together). Aggregate risk
+  across assets is assessed separately from the dependency graph. Weights and cutoffs are
+  starting points: institutions should calibrate them and record their rationale.
+factors:
+  - id: complexity
+    description: Methodological complexity and opacity of the technique.
+    weight: 1.0
+    guide:
+      1: Simple, transparent method (e.g. small logistic regression).
+      3: Moderately complex (e.g. many features, interactions, ensembles).
+      5: Highly complex or opaque (e.g. deep learning, large ensembles).
+  - id: assumptions
+    description: Number and criticality of key assumptions and expert judgment.
+    weight: 1.0
+    guide:
+      1: Few assumptions, well supported.
+      5: Many critical assumptions or heavy reliance on judgment.
+  - id: data_quality
+    description: Input-data constraints, quality issues, proxies or limited history.
+    weight: 1.0
+    guide:
+      1: Rich, well-governed data.
+      5: Sparse, novel or poorly governed data.
+  - id: exposure
+    description: Significance of outputs to business decisions (volume, balances, impact).
+    weight: 1.5
+    guide:
+      1: Informational only; negligible exposure.
+      3: Supports material decisions in one line of business.
+      5: Drives enterprise-level or high-volume consumer decisions.
+  - id: purpose
+    description: Use for regulatory requirements, financial-risk management or consumer outcomes.
+    weight: 1.5
+    guide:
+      1: Internal, non-decisioning use.
+      3: Financial-risk management.
+      5: Regulatory reporting or decisions directly affecting consumers.
+cutoffs:
+  - { tier: 1, min_score: 0.70 }
+  - { tier: 2, min_score: 0.45 }
+  - { tier: 3, min_score: 0.20 }
+  - { tier: 4, min_score: 0.0 }

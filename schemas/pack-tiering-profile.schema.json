@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-tiering-profile.schema.json",
+  "$defs": {
+    "TierCutoff": {
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Tier",
+          "type": "integer"
+        },
+        "min_score": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "tier",
+        "min_score"
+      ],
+      "title": "TierCutoff",
+      "type": "object"
+    },
+    "TieringFactor": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "scale_min": {
+          "default": 1,
+          "title": "Scale Min",
+          "type": "integer"
+        },
+        "scale_max": {
+          "default": 5,
+          "title": "Scale Max",
+          "type": "integer"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        },
+        "guide": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "What each score means.",
+          "title": "Guide",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "weight"
+      ],
+      "title": "TieringFactor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9\\-]*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "factors": {
+      "items": {
+        "$ref": "#/$defs/TieringFactor"
+      },
+      "minItems": 1,
+      "title": "Factors",
+      "type": "array"
+    },
+    "cutoffs": {
+      "items": {
+        "$ref": "#/$defs/TierCutoff"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Cutoffs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "description",
+    "factors",
+    "cutoffs"
+  ],
+  "title": "TieringProfile",
+  "type": "object"
+}

@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest a new capability or check
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What governance problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [inventory, tiering, workflow, checks, evidence, reports, API, dashboard, other]
