@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/asset-record.schema.json",
+  "$defs": {
+    "AICategory": {
+      "description": "What kind of technique the asset uses.",
+      "enum": [
+        "traditional",
+        "ml_non_generative",
+        "generative",
+        "agentic"
+      ],
+      "title": "AICategory",
+      "type": "string"
+    },
+    "Classification": {
+      "additionalProperties": false,
+      "description": "Answers to the classification questions and the governance track they imply.",
+      "properties": {
+        "is_model_sr26_2": {
+          "description": "True if the asset is a complex quantitative method that applies statistical, economic or financial theory to turn inputs into quantitative estimates. Simple arithmetic and deterministic rule-based software are not models.",
+          "title": "Is Model Sr26 2",
+          "type": "boolean"
+        },
+        "ai_category": {
+          "$ref": "#/$defs/AICategory"
+        },
+        "consequential_decision": {
+          "default": false,
+          "description": "Makes or substantially influences a consequential decision about a consumer.",
+          "title": "Consequential Decision",
+          "type": "boolean"
+        },
+        "third_party": {
+          "default": false,
+          "title": "Third Party",
+          "type": "boolean"
+        },
+        "jurisdictions": {
+          "examples": [
+            [
+              "US",
+              "US-CO"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Jurisdictions",
+          "type": "array"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "track": {
+          "$ref": "#/$defs/GovernanceTrack"
+        }
+      },
+      "required": [
+        "is_model_sr26_2",
+        "ai_category",
+        "rationale",
+        "track"
+      ],
+      "title": "Classification",
+      "type": "object"
+    },
+    "GovernanceTrack": {
+      "description": "Which governance track applies.",
+      "enum": [
+        "model",
+        "ai_system",
+        "non_model"
+      ],
+      "title": "GovernanceTrack",
+      "type": "string"
+    },
+    "LifecycleStatus": {
+      "enum": [
+        "intake",
+        "development",
+        "validation",
+        "approved",
+        "approved_with_limits",
+        "rejected",
+        "in_production",
+        "change_requested",
+        "retired"
+      ],
+      "title": "LifecycleStatus",
+      "type": "string"
+    },
+    "RiskAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "examples": [
+            "fin-us-banking/default"
+          ],
+          "minLength": 1,
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "factor_scores": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Score per tiering factor, keyed by id.",
+          "title": "Factor Scores",
+          "type": "object"
+        },
+        "computed_score": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Computed Score",
+          "type": "number"
+        },
+        "computed_tier": {
+          "description": "1 is the highest risk; 4 is immaterial.",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Computed Tier",
+          "type": "integer"
+        },
+        "override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TierOverride"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "aggregate_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aggregate Flags",
+          "type": "array"
+        },
+        "assessed_by": {
+          "minLength": 1,
+          "title": "Assessed By",
+          "type": "string"
+        },
+        "assessed_at": {
+          "format": "date-time",
+          "title": "Assessed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile_id",
+        "factor_scores",
+        "computed_score",
+        "computed_tier",
+        "assessed_by"
+      ],
+      "title": "RiskAssessment",
+      "type": "object"
+    },
+    "TierOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Tier",
+          "type": "integer"
+        },
+        "justification": {
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "approved_by": {
+          "minLength": 1,
+          "title": "Approved By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tier",
+        "justification",
+        "approved_by"
+      ],
+      "title": "TierOverride",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Anything under governance: a model or an AI system.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "owner": {
+      "minLength": 1,
+      "title": "Owner",
+      "type": "string"
+    },
+    "business_uses": {
+      "examples": [
+        [
+          "credit_decision"
+        ]
+      ],
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Business Uses",
+      "type": "array"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "ai_category": {
+      "$ref": "#/$defs/AICategory"
+    },
+    "vendor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vendor"
+    },
+    "status": {
+      "$ref": "#/$defs/LifecycleStatus",
+      "default": "intake"
+    },
+    "depends_on": {
+      "description": "Ids of upstream assets.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Depends On",
+      "type": "array"
+    },
+    "classification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Classification"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "risk_assessment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RiskAssessment"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "owner",
+    "business_uses",
+    "ai_category"
+  ],
+  "title": "AssetRecord",
+  "type": "object"
+}

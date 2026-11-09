@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/risk-assessment.schema.json",
+  "$defs": {
+    "TierOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Tier",
+          "type": "integer"
+        },
+        "justification": {
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "approved_by": {
+          "minLength": 1,
+          "title": "Approved By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tier",
+        "justification",
+        "approved_by"
+      ],
+      "title": "TierOverride",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "profile_id": {
+      "examples": [
+        "fin-us-banking/default"
+      ],
+      "minLength": 1,
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "factor_scores": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Score per tiering factor, keyed by id.",
+      "title": "Factor Scores",
+      "type": "object"
+    },
+    "computed_score": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Computed Score",
+      "type": "number"
+    },
+    "computed_tier": {
+      "description": "1 is the highest risk; 4 is immaterial.",
+      "maximum": 4,
+      "minimum": 1,
+      "title": "Computed Tier",
+      "type": "integer"
+    },
+    "override": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TierOverride"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "aggregate_flags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Aggregate Flags",
+      "type": "array"
+    },
+    "assessed_by": {
+      "minLength": 1,
+      "title": "Assessed By",
+      "type": "string"
+    },
+    "assessed_at": {
+      "format": "date-time",
+      "title": "Assessed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "profile_id",
+    "factor_scores",
+    "computed_score",
+    "computed_tier",
+    "assessed_by"
+  ],
+  "title": "RiskAssessment",
+  "type": "object"
+}

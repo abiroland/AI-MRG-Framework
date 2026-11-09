@@ -1,0 +1,36 @@
+name: Control or citation change
+description: Propose adding, changing or removing regulatory content in a pack
+labels: [pack-content]
+body:
+  - type: input
+    id: pack
+    attributes:
+      label: Pack
+      placeholder: fin-us-banking
+    validations:
+      required: true
+  - type: input
+    id: control
+    attributes:
+      label: Control ID (if existing)
+      placeholder: FIN-VAL-004
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Primary source
+      description: Link and section of the regulation, guidance or statute that supports the change.
+    validations:
+      required: true
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Acknowledgment
+      options:
+        - label: I understand pack content is informational and not legal advice.
+          required: true

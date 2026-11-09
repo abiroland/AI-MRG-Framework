@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/finding.schema.json",
+  "$defs": {
+    "FindingStatus": {
+      "enum": [
+        "open",
+        "in_remediation",
+        "closed",
+        "risk_accepted"
+      ],
+      "title": "FindingStatus",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "asset_id": {
+      "minLength": 1,
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "control_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Control Id"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "owner": {
+      "minLength": 1,
+      "title": "Owner",
+      "type": "string"
+    },
+    "due_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Due Date"
+    },
+    "status": {
+      "$ref": "#/$defs/FindingStatus",
+      "default": "open"
+    },
+    "remediation_evidence": {
+      "description": "Ids of evidence items supporting closure.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Remediation Evidence",
+      "type": "array"
+    },
+    "risk_acceptance_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Risk Acceptance By"
+    },
+    "opened_at": {
+      "format": "date-time",
+      "title": "Opened At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "asset_id",
+    "severity",
+    "title",
+    "owner"
+  ],
+  "title": "Finding",
+  "type": "object"
+}

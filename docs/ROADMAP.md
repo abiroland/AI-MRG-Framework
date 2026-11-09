@@ -8,14 +8,16 @@
 
 **Goal:** a public repo that looks like a serious open-source project from day one.
 
-- [ ] Repo hygiene: `LICENSE` (Apache-2.0), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `GOVERNANCE.md`, issue and PR templates
-- [ ] Package skeleton (`src/aimrg`), `pyproject.toml` with extras, ruff, mypy, pytest
-- [ ] GitHub Actions CI: lint, type-check, test on Python 3.11–3.13
-- [ ] MkDocs site published to GitHub Pages (architecture, regulatory map, roadmap)
-- [ ] Domain models (Pydantic) and their JSON Schemas: AssetRecord, Classification, RiskAssessment, Control, EvidenceItem, Finding
-- [ ] Control-catalog YAML schema and validator (`aimrg pack validate`)
+- [x] Repo hygiene: `LICENSE` (Apache-2.0), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `GOVERNANCE.md`, issue and PR templates
+- [x] Package skeleton (`src/aimrg`), `pyproject.toml` with extras, ruff, mypy, pytest
+- [x] GitHub Actions CI: lint, type-check, test on Python 3.11–3.13
+- [x] MkDocs site published to GitHub Pages (architecture, regulatory map, roadmap)
+- [x] Domain models (Pydantic) and their JSON Schemas: AssetRecord, Classification, RiskAssessment, Control, EvidenceItem, Finding
+- [x] Control-catalog YAML schema and validator (`aimrg pack validate`)
 
 **Exit criteria:** CI green; `pip install -e .` works; schema docs published.
+
+*Also delivered early:* a draft `fin-us-banking` pack (32 controls, 10 sources, default tiering profile, thresholds) and the safe applicability-expression language from Phase 1.
 
 ---
 

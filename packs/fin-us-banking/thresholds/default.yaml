@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-thresholds.schema.json
+# Industry-convention starting points. Institutions should calibrate and document their own.
+thresholds:
+  population_stability_index:
+    warn: 0.10
+    fail: 0.25
+    direction: above
+    note: Common industry convention for score and characteristic stability.
+  gini_drop:
+    warn: 0.05
+    fail: 0.10
+    direction: above
+    note: Absolute drop in Gini versus the development or prior-period baseline.
+  missing_rate:
+    warn: 0.05
+    fail: 0.20
+    direction: above
+    note: Share of missing values in a model input.
+  adverse_impact_ratio:
+    warn: 0.90
+    fail: 0.80
+    direction: below
+    note: >
+      Ratio of approval rates (protected group / control group). The 0.80 "four-fifths"
+      figure comes from employment-selection guidance and is a screening convention, not a
+      legal safe harbor in lending. Results need statistical and legal review.
+  standardized_mean_difference:
+    warn: 0.22
+    fail: 0.30
+    direction: above
+    note: >
+      Absolute standardized difference in mean scores between groups. Illustrative screening
+      values only; no regulatory standard sets these levels.

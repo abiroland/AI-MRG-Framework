@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-sources.schema.json
+sources:
+  - id: SR-26-2
+    title: Revised Guidance on Model Risk Management (SR 26-2 / OCC Bulletin 2026-13)
+    issuer: Federal Reserve Board, OCC and FDIC
+    binding: guidance
+    status: in_force
+    issued: 2026-04-17
+    url: https://www.federalreserve.gov/supervisionreg/srletters/sr2602.htm
+    notes: >
+      Supersedes SR 11-7 and SR 21-8. Sets no enforceable standards. Most relevant to banking
+      organizations over $30B in total assets. Generative and agentic AI are outside its scope
+      (footnote 3).
+
+  - id: ECOA-REGB
+    title: Equal Credit Opportunity Act and Regulation B
+    issuer: U.S. Congress; Consumer Financial Protection Bureau
+    binding: law
+    status: in_force
+    url: https://www.ecfr.gov/current/title-12/chapter-X/part-1002
+    notes: 15 U.S.C. 1691 et seq.; 12 CFR part 1002, including 1002.9 (notifications).
+
+  - id: CFPB-2022-03
+    title: >-
+      Consumer Financial Protection Circular 2022-03: Adverse action notification requirements
+      in connection with credit decisions based on complex algorithms
+    issuer: Consumer Financial Protection Bureau
+    binding: interpretive
+    status: published
+    issued: 2022-05-26
+
+  - id: CFPB-2023-03
+    title: >-
+      Consumer Financial Protection Circular 2023-03: Adverse action notification requirements
+      and the proper use of the CFPB's sample forms provided in Regulation B
+    issuer: Consumer Financial Protection Bureau
+    binding: interpretive
+    status: published
+    issued: 2023-09-19
+
+  - id: FCRA
+    title: Fair Credit Reporting Act
+    issuer: U.S. Congress
+    binding: law
+    status: in_force
+    notes: Adverse-action notice requirements when a consumer report is used (15 U.S.C. 1681m).
+
+  - id: FHA
+    title: Fair Housing Act
+    issuer: U.S. Congress
+    binding: law
+    status: in_force
+    notes: Applies to residential real estate-related transactions, including mortgage lending.
+
+  - id: TPRM-2023
+    title: Interagency Guidance on Third-Party Relationships, Risk Management
+    issuer: Federal Reserve Board, FDIC and OCC
+    binding: guidance
+    status: in_force
+    issued: 2023-06-06
+
+  - id: NIST-AI-RMF-1.0
+    title: Artificial Intelligence Risk Management Framework (AI RMF 1.0), NIST AI 100-1
+    issuer: National Institute of Standards and Technology
+    binding: voluntary
+    status: current; revision in progress
+    issued: 2023-01-26
+    url: https://www.nist.gov/itl/ai-risk-management-framework
+
+  - id: NIST-AI-600-1
+    title: >-
+      Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence
+      Profile, NIST AI 600-1
+    issuer: National Institute of Standards and Technology
+    binding: voluntary
+    status: current
+    issued: 2024-07-26
+
+  - id: CO-SB26-189
+    title: Colorado SB 26-189 (automated decision-making technology)
+    issuer: State of Colorado
+    binding: law
+    status: effective 2027-01-01
+    notes: >
+      Repeals and reenacts SB 24-205, which never took effect. Signed 2026-05-14. Related
+      litigation is ongoing; verify current status before relying on it.

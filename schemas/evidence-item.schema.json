@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/evidence-item.schema.json",
+  "$defs": {
+    "EvidenceType": {
+      "enum": [
+        "check_result",
+        "document",
+        "attestation",
+        "approval"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Proof that a control was performed. Items form a hash chain per asset.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "asset_id": {
+      "minLength": 1,
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "control_id": {
+      "minLength": 1,
+      "title": "Control Id",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/EvidenceType"
+    },
+    "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+    },
+    "payload_uri": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Pointer to the stored artifact.",
+      "title": "Payload Uri"
+    },
+    "payload_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Payload Sha256"
+    },
+    "pack_version": {
+      "examples": [
+        "fin-us-banking@0.1.0"
+      ],
+      "minLength": 1,
+      "title": "Pack Version",
+      "type": "string"
+    },
+    "actor": {
+      "minLength": 1,
+      "title": "Actor",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "prev_hash": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "record_hash() of the previous item for this asset.",
+      "title": "Prev Hash"
+    }
+  },
+  "required": [
+    "asset_id",
+    "control_id",
+    "type",
+    "pack_version",
+    "actor"
+  ],
+  "title": "EvidenceItem",
+  "type": "object"
+}

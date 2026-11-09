@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-MON-001
+    title: Ongoing performance and stability monitoring
+    objective: >
+      Evaluate whether the model keeps performing as expected as products, exposures,
+      customers, data or market conditions change.
+    lifecycle_stage: monitoring
+    applies_when: track == "model" and tier <= 3
+    frequency: quarterly
+    evidence_required: [check_result]
+    checks:
+      - id: stability.population_stability
+      - id: performance.discrimination_drift
+    references:
+      - { source: SR-26-2, section: Ongoing monitoring }
+      - { source: NIST-AI-RMF-1.0, section: MEASURE 2.4 }
+    guidance: Tier 1 assets should generally be monitored monthly.
+
+  - id: FIN-MON-002
+    title: Outcomes analysis
+    objective: >
+      Compare model outputs with realized outcomes (e.g. back-testing) and act on material
+      errors or persistent deviations beyond thresholds.
+    lifecycle_stage: monitoring
+    applies_when: track == "model" and tier <= 3
+    frequency: annually
+    evidence_required: [check_result, document]
+    checks:
+      - id: outcomes.backtest
+    references:
+      - { source: SR-26-2, section: Outcomes analysis }
+
+  - id: FIN-MON-003
+    title: Materiality re-check for immaterial assets
+    objective: >
+      Confirm that assets tiered as immaterial remain so, and re-tier any whose use or
+      exposure has grown.
+    lifecycle_stage: monitoring
+    applies_when: tier == 4
+    frequency: annually
+    evidence_required: [attestation]
+    references:
+      - { source: SR-26-2, section: Risk-based approach to model risk management }
+
+  - id: FIN-MON-004
+    title: Retirement and decommissioning
+    objective: >
+      Retire assets in a controlled way, confirm downstream dependencies are addressed, and
+      retain documentation.
+    lifecycle_stage: retirement
+    frequency: once
+    evidence_required: [document, approval]
+    references:
+      - { source: SR-26-2, section: Model inventory }
+      - { source: NIST-AI-RMF-1.0, section: GOVERN 1.7 }

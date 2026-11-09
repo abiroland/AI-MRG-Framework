@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-manifest.schema.json
+name: fin-us-banking
+version: 0.1.0-dev
+effective_as_of: 2026-11-09
+sector: financial_services
+title: U.S. banking and consumer lending
+description: >
+  Controls for model and AI-system governance at U.S. banks, credit unions and consumer
+  lenders. Draws on SR 26-2 / OCC Bulletin 2026-13, ECOA / Regulation B and related CFPB
+  circulars, FCRA, the Fair Housing Act, the 2023 interagency third-party guidance, NIST AI RMF
+  and its Generative AI Profile, and Colorado SB 26-189. DRAFT: not yet reviewed by
+  practitioners. Informational only; not legal advice.
+maintainers:
+  - abiroland
+reviewed: false

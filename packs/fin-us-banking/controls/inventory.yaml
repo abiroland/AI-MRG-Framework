@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-controls.schema.json
+controls:
+  - id: FIN-INV-001
+    title: Register the asset in the inventory
+    objective: >
+      Record every model and AI system in development or use, with enough detail to
+      understand its risks individually and in aggregate.
+    lifecycle_stage: inventory
+    frequency: continuous
+    evidence_required: [document]
+    references:
+      - { source: SR-26-2, section: Model inventory }
+      - { source: NIST-AI-RMF-1.0, section: GOVERN 1.6 }
+
+  - id: FIN-INV-002
+    title: Classify the asset and assign a governance track
+    objective: >
+      Determine whether the asset meets the SR 26-2 definition of a model, whether it is
+      generative or agentic AI (outside SR 26-2's scope), whether it influences consequential
+      consumer decisions, and whether it is third-party.
+    lifecycle_stage: inventory
+    frequency: on_change
+    evidence_required: [document, attestation]
+    references:
+      - { source: SR-26-2, section: Scope and definitions (incl. footnote 3) }
+      - { source: NIST-AI-RMF-1.0, section: MAP 1 }
+    guidance: >
+      Record the rationale, especially for borderline cases such as deterministic rules
+      engines (not models under SR 26-2) and GenAI tools embedded in credit workflows.
+
+  - id: FIN-INV-003
+    title: Assign and approve a risk tier
+    objective: >
+      Tier the asset using the institution's tiering profile, considering inherent risk,
+      exposure, purpose and materiality. Any override is justified and approved.
+    lifecycle_stage: inventory
+    frequency: on_change
+    evidence_required: [document, approval]
+    references:
+      - { source: SR-26-2, section: Risk-based approach to model risk management }
+      - { source: NIST-AI-RMF-1.0, section: MAP 5.1 }

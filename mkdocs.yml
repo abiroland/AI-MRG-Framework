@@ -1,0 +1,42 @@
+site_name: AI-MRG Framework
+site_description: Open-source, full-lifecycle AI and model risk governance for U.S. regulated industries.
+site_url: https://abiroland.github.io/ai-mrg-framework/
+repo_url: https://github.com/abiroland/ai-mrg-framework
+repo_name: abiroland/ai-mrg-framework
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+  palette:
+    - scheme: default
+      toggle: { icon: material/weather-night, name: Dark mode }
+    - scheme: slate
+      toggle: { icon: material/weather-sunny, name: Light mode }
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Writing packs: packs.md
+  - Design:
+      - Architecture: ARCHITECTURE.md
+      - Regulatory map: REGULATORY_MAP.md
+      - Roadmap: ROADMAP.md
+  - Decisions:
+      - "ADR-0001: Apache 2.0": adr/0001-license-apache-2.md
+      - "ADR-0002: Controls as data": adr/0002-controls-as-data.md
+      - "ADR-0003: Local-first": adr/0003-local-first.md
+      - "ADR-0004: Streamlit first": adr/0004-streamlit-first-dashboard.md
