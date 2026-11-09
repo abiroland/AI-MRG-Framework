@@ -30,6 +30,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting started: getting-started.md
+  - Checks: checks.md
   - Writing packs: packs.md
   - Design:
       - Architecture: ARCHITECTURE.md
@@ -40,3 +41,4 @@ nav:
       - "ADR-0002: Controls as data": adr/0002-controls-as-data.md
       - "ADR-0003: Local-first": adr/0003-local-first.md
       - "ADR-0004: Streamlit first": adr/0004-streamlit-first-dashboard.md
+      - "ADR-0005: SQLite storage": adr/0005-sqlite-stdlib-storage.md

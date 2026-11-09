@@ -2,8 +2,8 @@
 
 **An open-source, full-lifecycle AI and model risk governance toolkit for U.S. regulated industries, starting with financial services.**
 
-!!! warning "Pre-alpha"
-    AI-MRG is in Phase 0. The data models, pack format and CLI exist; inventory, tiering, checks and reporting arrive in Phase 1. Pack content is a **draft that has not been reviewed by practitioners**. Nothing here is legal advice.
+!!! warning "Early release (v0.1)"
+    Inventory, classification, tiering, control planning, core checks, the evidence trail, findings and reports work today. Fair-lending, adverse-action and GenAI checks are still to come. Pack content is a **draft that has not been reviewed by practitioners**. Nothing here is legal advice.
 
 ## What it does
 
@@ -18,6 +18,7 @@ Consumer-protection controls (ECOA/Regulation B adverse action, fair lending, FC
 
 ## Where to go next
 
-- [Getting started](getting-started.md): install it and validate the built-in pack.
+- [Getting started](getting-started.md): install it, run the example, and walk through the workflow.
+- [Checks](checks.md): built-in checks, dataset roles, and writing your own.
 - [Writing packs](packs.md): the control format and the applicability expression language.
 - [Architecture](ARCHITECTURE.md), [Regulatory map](REGULATORY_MAP.md) and [Roadmap](ROADMAP.md).

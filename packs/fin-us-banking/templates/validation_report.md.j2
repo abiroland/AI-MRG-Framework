@@ -1,0 +1,141 @@
+{% set c = asset.classification %}
+{% set ra = asset.risk_assessment %}
+# Model Validation Report — {{ asset.name }}
+
+> {{ disclaimer }}
+
+| | |
+|---|---|
+| **Asset** | {{ asset.name | cell }} |
+| **Asset ID** | `{{ asset.id }}` |
+| **Owner** | {{ asset.owner | cell }} |
+| **Status** | {{ asset.status.value }} |
+| **Governance pack** | {{ pack.ref }} (content effective as of {{ pack.effective_as_of }}{% if not pack.reviewed %}; draft, not yet practitioner-reviewed{% endif %}) |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+
+## 1. Executive summary
+
+[TO COMPLETE — validator: overall conclusion (approve / approve with limits / reject), key strengths, material weaknesses, and conditions or limitations of use.]
+
+Evidence status at the time of generation: {{ coverage_counts.complete }} of {{ coverage | length }} required controls complete, {{ coverage_counts.partial }} partial, {{ coverage_counts.failing }} failing and {{ coverage_counts.missing }} with no evidence. {{ open_findings | length }} finding(s) open.
+
+## 2. Asset description
+
+| | |
+|---|---|
+| **Business uses** | {{ asset.business_uses | join(", ") | cell }} |
+| **Technique** | {{ asset.ai_category.value }} |
+| **Vendor** | {{ asset.vendor | cell }} |
+| **Description** | {{ asset.description | cell }} |
+| **Upstream assets** | {% if upstream %}{{ upstream | map(attribute="name") | join(", ") | cell }}{% else %}—{% endif %} |
+| **Downstream assets** | {% if downstream %}{{ downstream | map(attribute="name") | join(", ") | cell }}{% else %}—{% endif %} |
+
+## 3. Classification
+
+| Question | Answer |
+|---|---|
+| Model under SR 26-2 definition | {{ "Yes" if c.is_model_sr26_2 else "No" }} |
+| Technique category | {{ c.ai_category.value }} |
+| Influences consequential consumer decisions | {{ "Yes" if c.consequential_decision else "No" }} |
+| Third-party | {{ "Yes" if c.third_party else "No" }} |
+| Jurisdictions | {{ c.jurisdictions | join(", ") | cell }} |
+| **Governance track** | **{{ c.track.value }}** |
+
+**Rationale:** {{ c.rationale }}
+
+## 4. Risk tier
+
+| Factor | Score{% if profile %} | Description{% endif %} |
+|---|---|{% if profile %}---|{% endif %}
+
+{% for factor, value in ra.factor_scores.items() %}
+| {{ factor }} | {{ value }}{% if profile %} | {% for f in profile.factors if f.id == factor %}{{ f.description | cell }}{% endfor %}{% endif %} |
+{% endfor %}
+
+- Profile: `{{ ra.profile_id }}`; computed score {{ ra.computed_score | num }} → **computed tier {{ ra.computed_tier }}**.
+{% if ra.override %}
+- **Override to tier {{ ra.override.tier }}** approved by {{ ra.override.approved_by }}: {{ ra.override.justification }}
+{% endif %}
+- **Effective tier: {{ ra.tier }}** (assessed by {{ ra.assessed_by }}, {{ ra.assessed_at.strftime("%Y-%m-%d") }}).
+{% for flag in ra.aggregate_flags %}
+- Aggregate risk: {{ flag }}
+{% endfor %}
+
+## 5. Scope: required controls and evidence
+
+| Control | Stage | Title | Status | Missing evidence |
+|---|---|---|---|---|
+{% for item in coverage %}
+| {{ item.control.id }} | {{ item.control.lifecycle_stage.value }} | {{ item.control.title | cell }} | {{ item.status.value }}{% if item.latest_outcome %} ({{ item.latest_outcome.value }}){% endif %} | {{ item.missing | map(attribute="value") | join(", ") | cell }} |
+{% endfor %}
+
+## 6. Automated test results
+
+{% if not check_results %}
+No automated check results have been recorded.
+{% endif %}
+{% for r in check_results %}
+### {{ r.check_id }} — {{ r.outcome | upper }}
+
+Control {{ r.evidence.control_id }} · recorded {{ r.evidence.recorded_at.strftime("%Y-%m-%d %H:%M") }} by {{ r.evidence.actor }} · evidence `{{ r.evidence.id[:12] }}`
+
+{{ r.summary }}
+
+{% if r.thresholds %}
+| Threshold | Value | Warn | Fail | Bad when | Outcome |
+|---|---|---|---|---|---|
+{% for t in r.thresholds %}
+| {{ t.name | cell }} | {{ t.value | num }} | {{ t.warn | num }} | {{ t.fail | num }} | {{ t.direction }} | {{ t.outcome }} |
+{% endfor %}
+
+{% endif %}
+{% if r.metrics %}
+| Metric | Value |
+|---|---|
+{% for k, v in r.metrics.items() %}
+| {{ k | cell }} | {{ v | num }} |
+{% endfor %}
+
+{% endif %}
+{% for note in r.notes %}
+- {{ note }}
+{% endfor %}
+{% endfor %}
+
+## 7. Findings
+
+{% if findings %}
+| ID | Severity | Status | Control | Title | Owner | Due |
+|---|---|---|---|---|---|---|
+{% for f in findings %}
+| `{{ f.id[:8] }}` | {{ f.severity.value }} | {{ f.status.value }} | {{ f.control_id | cell }} | {{ f.title | cell }} | {{ f.owner | cell }} | {{ f.due_date | cell }} |
+{% endfor %}
+{% else %}
+No findings recorded.
+{% endif %}
+
+## 8. Conceptual soundness
+
+[TO COMPLETE — validator: assessment of design, key assumptions, data selection and developmental testing against the stated purpose.]
+
+## 9. Limitations and conditions of use
+
+[TO COMPLETE — validator: known limitations, use restrictions, overlays, and monitoring conditions attached to approval.]
+
+## 10. Sign-off
+
+| Role | Name | Date | Decision |
+|---|---|---|---|
+| Validator | [TO COMPLETE] | | |
+| Model owner | [TO COMPLETE] | | |
+| Approver | [TO COMPLETE] | | |
+
+## Appendix A — Evidence register
+
+| # | Control | Type | Outcome | Actor | Recorded | Record hash |
+|---|---|---|---|---|---|---|
+{% for e in evidence %}
+| {{ loop.index }} | {{ e.control_id }} | {{ e.type.value }} | {{ e.outcome.value if e.outcome else "—" }} | {{ e.actor | cell }} | {{ e.recorded_at.strftime("%Y-%m-%d %H:%M") }} | `{{ e.record_hash()[:16] }}` |
+{% endfor %}
+
+Evidence is append-only and hash-chained. Verify integrity with `aimrg audit verify`.

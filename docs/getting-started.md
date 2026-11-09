@@ -9,67 +9,153 @@ git clone https://github.com/abiroland/ai-mrg-framework
 cd ai-mrg-framework
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"          # or ".[docx]" for just Word output
 ```
 
 Requires Python 3.11 or later.
 
-## Explore the built-in pack
+## See it work in one command
 
 ```bash
-aimrg pack list
-aimrg pack validate fin-us-banking
+python examples/credit-scorecard/run_example.py demo
 ```
 
-## Use the models from Python
+This builds a registry from a **simulated** credit-card underwriting model, records
+development, validation and monitoring evidence, and writes a validation report (Markdown
+and Word) and an inventory report into `demo/`. The model passes validation, then drifts
+in the monitored period, so two monitoring checks fail and open findings.
+
+## The workflow, step by step
+
+Every command takes `--db` (default `aimrg.db`, or set `AIMRG_DB`) and `--actor`, which is
+recorded on evidence (defaults to your login, or set `AIMRG_ACTOR`).
+
+### 1. Create a registry
+
+```bash
+aimrg init                       # uses the built-in fin-us-banking pack
+```
+
+### 2. Register assets
+
+```bash
+aimrg register "Card Underwriting PD" --owner credit-risk \
+  --use credit_decision --category ml_non_generative
+```
+
+Or import an existing spreadsheet inventory (CSV or YAML, all-or-nothing):
+
+```bash
+aimrg import inventory.csv
+```
+
+CSV columns: `name, owner, business_uses, ai_category` (required) and `description,
+vendor, depends_on` (optional). Separate several uses or dependencies with `;`.
+
+### 3. Classify
+
+```bash
+aimrg classify "Card Underwriting PD"
+```
+
+The wizard asks whether the asset meets the SR 26-2 model definition, whether it
+influences consequential consumer decisions, whether it is third-party, and which
+jurisdictions it affects. Generative and agentic AI go to the **AI-system track**,
+because SR 26-2 places them out of its scope. Every answer can also be given as an
+option (`--model`, `--consequential`, `--in-house`, `--jurisdiction US-CO`,
+`--rationale "..."`).
+
+### 4. Assign a risk tier
+
+```bash
+aimrg tier "Card Underwriting PD"           # prompts for each factor, with guidance
+aimrg tier "Card Underwriting PD" --score exposure=5 --score purpose=5 ...
+```
+
+Overrides need a justification and an approver:
+`--override-tier 1 --justification "..." --approved-by "CRO"`.
+
+### 5. See what's required
+
+```bash
+aimrg plan "Card Underwriting PD"
+aimrg plan "Card Underwriting PD" --stage validation
+```
+
+Each applicable control is shown with its status (`missing`, `partial`, `failing`,
+`complete`), the evidence still missing, and its automated checks.
+
+### 6. Run checks
+
+Checks work on **scored datasets**: CSV (or Parquet) files that already contain your
+model's score and, where relevant, the observed outcome. Name each file by its role:
+
+```bash
+aimrg check run "Card Underwriting PD" FIN-VAL-003 \
+  --data dev=dev.csv --data oot=oot.csv --target bad --score pd_score
+
+aimrg check run "Card Underwriting PD" FIN-MON-001 \
+  --data baseline=dev.csv --data current=2026q3.csv --target bad --score pd_score
+```
+
+Results are stored as evidence. A failing check opens a finding and exits with code 2,
+which is useful in scheduled monitoring jobs. See [Checks](checks.md).
+
+### 7. Record other evidence
+
+```bash
+aimrg evidence add "Card Underwriting PD" FIN-VAL-001 \
+  --type document --summary "Validation memo v1" --file memo.pdf
+aimrg evidence add "Card Underwriting PD" FIN-VAL-003 \
+  --type attestation --summary "OOT results independently replicated"
+```
+
+### 8. Work findings
+
+```bash
+aimrg finding list
+aimrg finding close 345e040b --evidence 9d008d13     # cite remediation evidence
+aimrg finding accept 5b2e5e58 --by "Chief Risk Officer"
+```
+
+### 9. Generate documents
+
+```bash
+aimrg report render validation_report "Card Underwriting PD" --format docx
+aimrg report render inventory_report -o inventory.md
+```
+
+Reports are drawn from recorded evidence. Judgments (conclusions, limitations, sign-off)
+are left as `[TO COMPLETE]` placeholders for people to write.
+
+### 10. Verify the audit trail
+
+```bash
+aimrg audit verify
+```
+
+Recomputes every evidence hash chain and checks that stored artifacts are unchanged.
+
+## From Python
+
+Everything the CLI does is available as a library:
 
 ```python
-from aimrg.core import AICategory, AssetRecord, Classification
-from aimrg.packs import compile_expression, load_builtin_pack
+from aimrg.checks import run_control_checks
+from aimrg.registry import Registry
+from aimrg.reports import render
 
-pack = load_builtin_pack("fin-us-banking")
-
-classification = Classification.from_answers(
-    is_model_sr26_2=True,
-    ai_category=AICategory.ML_NON_GENERATIVE,
-    consequential_decision=True,
-    rationale="Gradient-boosted credit card underwriting model",
-)
-asset = AssetRecord(
-    name="Retail Card Underwriting v3",
-    owner="credit-risk",
-    business_uses=["credit_decision"],
-    ai_category=AICategory.ML_NON_GENERATIVE,
-    classification=classification,
-)
-
-profile = pack.tiering_profile("default")
-score = profile.score(
-    {"complexity": 4, "assumptions": 3, "data_quality": 2, "exposure": 5, "purpose": 5}
-)
-tier = profile.tier_for(score)  # → 1
-
-context = {
-    "track": classification.track.value,
-    "tier": tier,
-    "ai_category": asset.ai_category.value,
-    "uses": asset.business_uses,
-    "consequential_decision": classification.consequential_decision,
-    "third_party": classification.third_party,
-    "jurisdictions": ["US"],
-    "stage": asset.status.value,
-}
-required = [c for c in pack.controls if compile_expression(c.applies_when).evaluate(context)]
-for control in required:
-    print(control.id, control.title)
+with Registry.open("aimrg.db") as registry:
+    runs = run_control_checks(
+        registry,
+        "Card Underwriting PD",
+        "FIN-MON-001",
+        {"baseline": dev_df, "current": current_df},
+        actor="validator@bank",
+        target="bad",
+        score="pd_score",
+    )
+    markdown = render(registry, "validation_report", "Card Underwriting PD")
 ```
 
-Phase 1 wraps this into a registry, a control resolver and the `aimrg register / tier / plan` commands.
-
-## Export JSON Schemas
-
-```bash
-aimrg schema export schemas
-```
-
-The published schemas also give YAML editors (for example VS Code with the YAML extension) autocompletion and validation for pack files.
+See `examples/credit-scorecard/run_example.py` for a complete script.

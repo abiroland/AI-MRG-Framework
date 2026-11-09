@@ -178,6 +178,7 @@ def load_pack(pack_dir: str | Path) -> Pack:
         controls=controls,
         tiering_profiles=profiles,
         thresholds=thresholds,
+        root=str(root),
     )
 
 

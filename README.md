@@ -2,7 +2,7 @@
 
 **An open-source, full-lifecycle AI and model risk governance toolkit for U.S. regulated industries — starting with financial services.**
 
-> Status: **pre-alpha (Phase 0 complete)**. The data models, pack format, a draft `fin-us-banking` pack and the `aimrg` CLI are in place. Inventory, tiering, checks and reporting land in Phase 1. See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
+> Status: **v0.1 (Phase 1)**. Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes), a tamper-evident evidence trail, findings, and validation/inventory reports in Markdown and Word all work from the `aimrg` CLI and Python. Fair-lending, adverse-action and GenAI checks come next. See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
 
 [![CI](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml)
 
@@ -46,11 +46,11 @@ git clone https://github.com/abiroland/ai-mrg-framework
 cd ai-mrg-framework
 pip install -e ".[dev]"
 
-aimrg pack list
-aimrg pack validate fin-us-banking
+# A complete run on a simulated credit model: registry, evidence, findings, reports
+python examples/credit-scorecard/run_example.py demo
 ```
 
-See [Getting started](docs/getting-started.md) for using the models from Python, and [Writing packs](docs/packs.md) for the control format.
+Then follow [Getting started](docs/getting-started.md) for the step-by-step workflow (`aimrg init → register → classify → tier → plan → check run → report render → audit verify`). See [Checks](docs/checks.md) and [Writing packs](docs/packs.md) for details.
 
 ## Documentation
 

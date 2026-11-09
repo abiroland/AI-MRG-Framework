@@ -1,0 +1,48 @@
+# Model and AI System Inventory Report
+
+> {{ disclaimer }}
+
+| | |
+|---|---|
+| **Governance pack** | {{ pack.ref }} (content effective as of {{ pack.effective_as_of }}{% if not pack.reviewed %}; draft, not yet practitioner-reviewed{% endif %}) |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+| **Assets** | {{ rows | length }} |
+
+## Summary
+
+| Tier | Assets |
+|---|---|
+{% for tier, n in by_tier.items() %}
+| {{ tier }} | {{ n }} |
+{% endfor %}
+| Not yet tiered | {{ untiered | length + unclassified | length }} |
+
+| Governance track | Assets |
+|---|---|
+{% for track, n in by_track.items() %}
+| {{ track }} | {{ n }} |
+{% endfor %}
+| Not yet classified | {{ unclassified | length }} |
+
+## Inventory
+
+| Asset | Owner | Track | Tier | Status | Controls complete | Open findings |
+|---|---|---|---|---|---|---|
+{% for r in rows %}
+| {{ r.asset.name | cell }} | {{ r.asset.owner | cell }} | {{ r.track | cell }} | {{ r.tier | cell }} | {{ r.asset.status.value }} | {% if r.controls_required is not none %}{{ r.controls_complete }} / {{ r.controls_required }}{% else %}—{% endif %} | {{ r.open_findings }} |
+{% endfor %}
+
+{% if unclassified or untiered %}
+## Action needed
+
+{% for a in unclassified %}
+- **{{ a.name }}** has not been classified (`aimrg classify`).
+{% endfor %}
+{% for a in untiered %}
+- **{{ a.name }}** has not been risk-tiered (`aimrg tier`).
+{% endfor %}
+{% endif %}
+
+## Committee commentary
+
+[TO COMPLETE — model risk committee: portfolio-level observations, aggregate risk, and priorities.]

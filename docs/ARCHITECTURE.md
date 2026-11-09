@@ -160,32 +160,50 @@ Each check:
 
 ### 5.1 Python SDK (primary)
 ```python
-import aimrg
+from aimrg.checks import run_control_checks
+from aimrg.core.classify import classify
+from aimrg.core.models import AICategory, AssetRecord
+from aimrg.packs.resolver import required_controls
+from aimrg.registry import Registry
+from aimrg.reports import markdown_to_docx, render
+from aimrg.tiering import assess_asset
 
-reg = aimrg.Registry.open("governance.db")
+reg = Registry.create("governance.db", pack="fin-us-banking")
 asset = reg.register(
-    name="Retail Card Underwriting v3",
-    owner="credit-risk@bank.example",
-    business_use=["credit_decision"],
-    ai_category="ml_non_generative",
+    AssetRecord(
+        name="Retail Card Underwriting v3",
+        owner="credit-risk@bank.example",
+        business_uses=["credit_decision"],
+        ai_category=AICategory.ML_NON_GENERATIVE,
+    )
 )
-asset.assess_risk(profile="fin-us-banking/default")  # → Tier 1
-plan = asset.required_controls(stage="validation")
+reg.set_classification(
+    asset.id,
+    classify(
+        ai_category="ml_non_generative",
+        is_model_sr26_2=True,
+        consequential_decision=True,
+        rationale="PD model for approvals",
+    ),
+)
+scores = {"complexity": 3, "assumptions": 3, "data_quality": 2, "exposure": 5, "purpose": 5}
+asset = assess_asset(reg, asset.id, scores, assessed_by="mrm")  # → Tier 1
+plan = required_controls(reg.pack, asset, stage="validation")
 
-results = aimrg.run_checks(
-    asset,
-    plan,
-    model=model,
-    train=train_df,
-    test=test_df,
-    oot=oot_df,
-    protected_proxy="bisg",
+run_control_checks(
+    reg,
+    asset.id,
+    "FIN-VAL-003",
+    {"dev": dev_df, "oot": oot_df},
+    actor="validator",
+    target="bad",
+    score="pd_score",
 )
-asset.render("validation_report", fmt="docx")
+markdown_to_docx(render(reg, "validation_report", asset.id), "validation_report.docx")
 ```
 
 ### 5.2 CLI
-`aimrg init`, `aimrg register`, `aimrg tier`, `aimrg plan`, `aimrg check run`, `aimrg evidence add`, `aimrg finding open|close`, `aimrg report render`, `aimrg audit verify`, `aimrg export`.
+`aimrg init`, `register`, `import`, `list`, `show`, `classify`, `tier`, `plan`, `check list|run`, `evidence add|list`, `finding list|open|close|accept`, `report list|render`, `audit verify`, `pack list|validate`, `schema export`. (`aimrg export` of an examination package is planned for Phase 3.)
 
 ### 5.3 REST API (FastAPI)
 - Same operations as the SDK, with OpenAPI docs.
@@ -240,7 +258,8 @@ Example control (from the shipped pack):
   frequency: at_validation
   checks:
     - id: performance.oot_comparison
-      thresholds: { gini_drop_warn: 0.05, gini_drop_fail: 0.10 }
+      thresholds:                      # optional overrides of pack defaults
+        gini_drop: { warn: 0.05, fail: 0.10, direction: above }
   evidence_required: [check_result, attestation]
   references:
     - source: SR-26-2
@@ -282,7 +301,7 @@ ai-mrg/
 |---|---|---|
 | Language | Python ≥ 3.11 | It's what model developers and validators already use |
 | Schemas | Pydantic v2 + JSON Schema | Validation, plus interoperability |
-| Storage | SQLAlchemy 2 / SQLModel; SQLite default, Postgres optional | Zero-setup start; scales to multi-user |
+| Storage | Standard-library SQLite in v0.1 ([ADR-0005](adr/0005-sqlite-stdlib-storage.md)); Postgres in Phase 2 | Zero-setup start; scales to multi-user later |
 | API | FastAPI | Typed, generates OpenAPI |
 | Dashboard | Streamlit (v0.3) | Fastest path to a usable UI |
 | Docs rendering | Jinja2 → Markdown → python-docx / PDF | Examiner-friendly formats |
