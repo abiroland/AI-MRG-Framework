@@ -114,6 +114,18 @@ Control {{ r.evidence.control_id }} · recorded {{ r.evidence.recorded_at.strfti
 No findings recorded.
 {% endif %}
 
+### Lifecycle history
+
+{% if events %}
+| When | From | To | By | Approver | Limits / note |
+|---|---|---|---|---|---|
+{% for e in events %}
+| {{ e.occurred_at.strftime("%Y-%m-%d %H:%M") }} | {{ e.from_status.value }} | {{ e.to_status.value }} | {{ e.actor | cell }} | {{ e.approver | cell }} | {{ (e.limits or e.note) | cell }} |
+{% endfor %}
+{% else %}
+No lifecycle transitions recorded (status: {{ asset.status.value }}).
+{% endif %}
+
 ## 8. Conceptual soundness
 
 [TO COMPLETE — validator: assessment of design, key assumptions, data selection and developmental testing against the stated purpose.]

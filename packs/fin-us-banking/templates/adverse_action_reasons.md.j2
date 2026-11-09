@@ -1,0 +1,53 @@
+{% set aa = results_for("adverse_action.") %}
+# Adverse-Action Reason Methodology — {{ asset.name }}
+
+> {{ disclaimer }}
+
+| | |
+|---|---|
+| **Asset** | {{ asset.name | cell }} (`{{ asset.id[:12] }}`) |
+| **Governance pack** | {{ pack.ref }} |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+
+Regulation B requires a statement of the specific principal reasons for adverse action; the reasons must relate to and accurately describe the factors actually considered or scored. Statements that the decision was based on internal standards or policies, or on failing to achieve a qualifying score, are insufficient (12 CFR 1002.9(b)(2)). The CFPB has stated that model complexity does not change these obligations (Circulars 2022-03 and 2023-03).
+
+## 1. Method for selecting reasons
+
+[TO COMPLETE — model owner: the attribution method (e.g. SHAP values, or coefficient × deviation from a reference for a logistic model), the reference point, how factors are ranked, how many reasons are disclosed, and how factors sharing a reason are combined.]
+
+## 2. Automated checks
+
+{% if not aa %}
+No adverse-action check results recorded. Run the checks for control FIN-CPR-001 with `--param reason_map=<file>`.
+{% endif %}
+{% for r in aa %}
+### {{ r.check_id }} — {{ r.outcome | upper }}
+
+Recorded {{ r.evidence.recorded_at.strftime("%Y-%m-%d") }} by {{ r.evidence.actor }} · reason map `{{ r.inputs.get("reason_map", "—") }}`
+
+{{ r.summary }}
+
+{% if r.tables.get("primary_reasons") %}
+| Reason code | Reason | Applicants (as primary reason) | Share |
+|---|---|---|---|
+{% for row in r.tables.primary_reasons %}
+| {{ row.reason_code }} | {{ row.reason | cell }} | {{ row.applicants_as_primary_reason }} | {{ row.share | pct }} |
+{% endfor %}
+
+{% endif %}
+{% if r.tables.get("reasons") %}
+| Factor | Code | Reason statement | Issues |
+|---|---|---|---|
+{% for row in r.tables.reasons %}
+| {{ row.factor | cell }} | {{ row.code }} | {{ row.reason | cell }} | {{ row.issues | cell }} |
+{% endfor %}
+
+{% endif %}
+{% for note in r.notes %}
+- {{ note }}
+{% endfor %}
+
+{% endfor %}
+## 3. Compliance review
+
+[TO COMPLETE — compliance: review of each reason statement for accuracy and specificity, and sign-off.]

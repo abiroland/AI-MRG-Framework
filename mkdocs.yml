@@ -31,6 +31,7 @@ nav:
   - Home: index.md
   - Getting started: getting-started.md
   - Checks: checks.md
+  - Lifecycle workflow: workflow.md
   - Writing packs: packs.md
   - Design:
       - Architecture: ARCHITECTURE.md

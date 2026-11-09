@@ -124,6 +124,16 @@ def _fit_logistic(x: np.ndarray, y: np.ndarray, ridge: float = 1e-4) -> np.ndarr
     return raw
 
 
+def _portfolio(seed: int) -> tuple[dict[str, pd.DataFrame], np.ndarray, pd.Series]:
+    rng = np.random.default_rng(seed)
+    frames = {role: _simulate(rng, period) for role, period in _PERIODS.items()}
+    medians = frames["dev"][FEATURES[:-1]].median(numeric_only=True)
+    beta = _fit_logistic(_design(frames["dev"], medians), frames["dev"][TARGET].to_numpy(float))
+    for frame in frames.values():
+        frame[SCORE] = (1 / (1 + np.exp(-_design(frame, medians) @ beta))).round(6)
+    return frames, beta, medians
+
+
 def synthetic_credit_portfolio(seed: int = 7) -> dict[str, pd.DataFrame]:
     """Simulated credit-card underwriting data, scored by a logistic model fitted on ``dev``.
 
@@ -131,10 +141,51 @@ def synthetic_credit_portfolio(seed: int = 7) -> dict[str, pd.DataFrame]:
     Each has the :data:`FEATURES`, the observed outcome :data:`TARGET` (1 = defaulted) and
     the model's probability of default :data:`SCORE`. The ``current`` period is drifted.
     """
-    rng = np.random.default_rng(seed)
-    frames = {role: _simulate(rng, period) for role, period in _PERIODS.items()}
-    medians = frames["dev"][FEATURES[:-1]].median(numeric_only=True)
-    beta = _fit_logistic(_design(frames["dev"], medians), frames["dev"][TARGET].to_numpy(float))
-    for frame in frames.values():
-        frame[SCORE] = (1 / (1 + np.exp(-_design(frame, medians) @ beta))).round(6)
+    frames, _, _ = _portfolio(seed)
     return frames
+
+
+#: Synthetic group labels. They stand in for protected classes in examples and tests and
+#: do not represent any real demographic group.
+GROUPS = ("group_a", "group_b", "group_c")
+
+
+def synthetic_lending_decisions(seed: int = 7, cutoff: float = 0.18) -> pd.DataFrame:
+    """Simulated application decisions for fair-lending and adverse-action examples.
+
+    Starts from the out-of-time sample of :func:`synthetic_credit_portfolio` and adds:
+
+    * ``declined`` (1 = adverse action) and ``approved``, using a score cutoff;
+    * ``contrib_<factor>``: each factor's contribution to the log-odds of default relative
+      to the development-sample average (positive = pushed toward decline);
+    * ``group``: a synthetic group label (see :data:`GROUPS`), correlated with income so
+      that outcome disparities appear;
+    * ``p_group_a`` ... ``p_group_c``: noisy proxy probabilities of group membership, as a
+      proxy method would produce.
+    """
+    frames, beta, medians = _portfolio(seed)
+    df = frames["oot"].copy()
+    rng = np.random.default_rng(seed + 1000)
+
+    x = _design(df, medians)
+    reference = _design(frames["dev"], medians).mean(axis=0)
+    for i, factor in enumerate(FEATURES, start=1):
+        df[f"contrib_{factor}"] = (beta[i] * (x[:, i] - reference[i])).round(6)
+
+    df["declined"] = (df[SCORE] > cutoff).astype(int)
+    df["approved"] = 1 - df["declined"]
+
+    income = df["income_k"].fillna(medians["income_k"]).to_numpy()
+    low_income = income < np.quantile(income, 0.4)
+    probs = np.where(
+        low_income[:, None], np.array([0.28, 0.56, 0.16]), np.array([0.70, 0.12, 0.18])
+    )
+    labels = np.array([rng.choice(GROUPS, p=row) for row in probs])
+    df["group"] = labels
+    # A proxy is informative but imperfect: mix the true label with the base rates.
+    one_hot = np.stack([(labels == g).astype(float) for g in GROUPS], axis=1)
+    noisy = 0.65 * one_hot + 0.35 * probs + rng.uniform(0, 0.05, size=one_hot.shape)
+    noisy = noisy / noisy.sum(axis=1, keepdims=True)
+    for j, g in enumerate(GROUPS):
+        df[f"p_{g}"] = noisy[:, j].round(4)
+    return df

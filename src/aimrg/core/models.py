@@ -276,6 +276,25 @@ def verify_chain(items: list[EvidenceItem]) -> list[str]:
     return problems
 
 
+# --- Lifecycle events ---------------------------------------------------------
+
+
+class LifecycleEvent(_Model):
+    """A recorded change of lifecycle status."""
+
+    id: str = Field(default_factory=_new_id)
+    asset_id: NonEmptyStr
+    from_status: LifecycleStatus
+    to_status: LifecycleStatus
+    actor: NonEmptyStr
+    approver: str | None = None
+    note: str = ""
+    limits: str | None = Field(
+        default=None, description="Use limitations, required for approved_with_limits."
+    )
+    occurred_at: datetime = Field(default_factory=_now)
+
+
 # --- Findings -----------------------------------------------------------------
 
 

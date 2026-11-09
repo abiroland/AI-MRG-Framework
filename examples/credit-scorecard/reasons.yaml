@@ -1,0 +1,24 @@
+# Example reason map for the simulated card model. Model factor -> reason statement.
+# Reason wording is illustrative; have compliance review your own statements.
+reasons:
+  utilization:
+    code: R01
+    text: Balances are high relative to credit limits on revolving accounts
+  delinquencies_24m:
+    code: R02
+    text: Delinquency on one or more credit accounts in the last 24 months
+  debt_to_income:
+    code: R03
+    text: Debt payments are high relative to income
+  income_k:
+    code: R04
+    text: Income is low relative to the credit requested
+  inquiries_6m:
+    code: R05
+    text: Number of recent requests for credit
+  months_on_book:
+    code: R06
+    text: Limited length of credit history
+  home_owner:
+    code: R07
+    text: Length or type of residence information provided

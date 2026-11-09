@@ -20,6 +20,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, TemplateNotFo
 
 from aimrg import __version__
 from aimrg.core.models import EvidenceType, FindingStatus
+from aimrg.findings import aging
 from aimrg.packs.resolver import CoverageStatus, ResolverError, coverage
 from aimrg.registry.store import Registry, RegistryError
 
@@ -29,7 +30,12 @@ DISCLAIMER = (
     "and is not legal advice."
 )
 
-ASSET_TEMPLATES = ("validation_report",)
+ASSET_TEMPLATES = (
+    "validation_report",
+    "fair_lending_report",
+    "adverse_action_reasons",
+    "vendor_assessment",
+)
 PORTFOLIO_TEMPLATES = ("inventory_report",)
 
 
@@ -123,6 +129,12 @@ def asset_context(registry: Registry, ref: str) -> dict[str, Any]:
         "evidence": evidence,
         "check_results": check_results,
         "findings": findings,
+        "aging": aging(findings),
+        "events": registry.events(asset.id),
+        "results_for": lambda prefix: [
+            r for r in check_results if r["check_id"].startswith(prefix)
+        ],
+        "coverage_for": lambda *ids: [c for c in cov if c.control.id in ids],
         "open_findings": [
             f
             for f in findings
@@ -154,6 +166,12 @@ def portfolio_context(registry: Registry) -> dict[str, Any]:
                 "controls_required": required,
             }
         )
+    names = {a.id: a.name for a in registry.assets()}
+    overdue = [
+        {"asset": names.get(a.finding.asset_id), "row": a}
+        for a in aging(registry.findings())
+        if a.days_overdue > 0
+    ]
     by_tier = Counter(r["tier"] for r in rows if r["tier"] is not None)
     by_track = Counter(r["track"] for r in rows if r["track"] is not None)
     return {
@@ -161,6 +179,7 @@ def portfolio_context(registry: Registry) -> dict[str, Any]:
         "rows": rows,
         "by_tier": dict(sorted(by_tier.items())),
         "by_track": dict(sorted(by_track.items())),
+        "overdue": overdue,
         "unclassified": [r["asset"] for r in rows if r["track"] is None],
         "untiered": [r["asset"] for r in rows if r["track"] is not None and r["tier"] is None],
     }

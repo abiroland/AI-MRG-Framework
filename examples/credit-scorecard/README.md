@@ -10,32 +10,34 @@ python examples/credit-scorecard/run_example.py demo
 
 ## What happens
 
-1. **Data.** Scored samples are written to `demo/`: `dev.csv` (development), `test.csv`
-   (hold-out), `oot.csv` (out-of-time) and `current.csv` (a later monitored period in
-   which the population and the model's performance have drifted).
-2. **Inventory.** Two assets are registered: a bureau-attribute pipeline and the PD
-   model that depends on it.
-3. **Classification.** The pipeline is not a model under SR 26-2 (deterministic
-   transformations); the PD model is, and it influences consumer credit decisions in
-   the US and Colorado.
-4. **Tiering.** The PD model scores as Tier 1; the dependency is flagged as aggregate
-   risk.
-5. **Development testing** (as the developer): data quality, representativeness,
-   out-of-sample and out-of-time discrimination. All pass.
-6. **Validation** (as the validator): independent out-of-time replication plus
-   documents and attestations for the validation and conceptual-soundness controls.
-7. **Monitoring.** Score stability is acceptable, but discrimination has dropped and the
-   model now over-predicts defaults. Both checks fail and open findings automatically.
-8. **Documents.** `validation_report.md`, `validation_report.docx` and
-   `inventory_report.md` are generated from the recorded evidence, and the audit trail
-   is verified.
+1. **Data.** Scored samples are written to `demo/` (`dev`, `test`, `oot`, `current`), plus
+   `decisions.csv`: application decisions with per-factor attributions (`contrib_*`),
+   synthetic group labels and proxy membership probabilities (`p_group_*`). The groups are
+   synthetic stand-ins, not real demographic categories.
+2. **Inventory, classification, tiering.** A bureau-attribute pipeline (not a model under
+   SR 26-2) and the PD model (Tier 1, consumer credit decisions in the US and Colorado).
+3. **Development.** The developer records data-quality and performance testing and the
+   model moves to validation.
+4. **Validation.** The validator replicates out-of-time performance and runs the
+   adverse-action checks against `reasons.yaml`. The fair-lending screen finds a
+   standardized mean difference above the illustrative threshold and opens a finding,
+   which **blocks approval**.
+5. **Resolution and approval.** The fair-lending team records its review; the finding is
+   closed with that evidence; an independent approver approves the model.
+6. **Production.** Adverse-action notice and Colorado disclosure evidence is recorded and
+   the model goes into production.
+7. **Monitoring.** Discrimination and calibration have deteriorated: two checks fail, two
+   findings open, and a change request is raised.
+8. **Documents.** `validation_report.md` / `.docx`, `fair_lending_report.md`,
+   `adverse_action_reasons.md` and `inventory_report.md`; the audit trail is verified.
 
 ## Explore the result with the CLI
 
 ```bash
 cd demo
+aimrg status "Card Underwriting PD"
 aimrg plan "Card Underwriting PD"
-aimrg finding list
+aimrg finding aging
 aimrg evidence list "Card Underwriting PD"
 aimrg audit verify
 ```

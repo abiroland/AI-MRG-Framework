@@ -29,14 +29,14 @@ from aimrg.core.models import (
     Classification,
     EvidenceItem,
     Finding,
-    LifecycleStatus,
+    LifecycleEvent,
     RiskAssessment,
     verify_chain,
 )
 from aimrg.packs.loader import builtin_pack_names, builtin_packs_dir, load_pack
 from aimrg.packs.models import Pack
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 ARTIFACT_SCHEME = "artifact://"
 
 _DDL = """
@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS findings (
     asset_id TEXT NOT NULL REFERENCES assets(id),
     data     TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS events (
+    id          TEXT PRIMARY KEY,
+    asset_id    TEXT NOT NULL REFERENCES assets(id),
+    occurred_at TEXT NOT NULL,
+    data        TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events
+BEGIN SELECT RAISE(ABORT, 'lifecycle events are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
+BEGIN SELECT RAISE(ABORT, 'lifecycle events are append-only'); END;
 """
 
 
@@ -142,10 +152,21 @@ class Registry:
         except sqlite3.DatabaseError as exc:
             conn.close()
             raise RegistryError(f"{db_path} is not a compatible AI-MRG registry") from exc
-        if version is None or int(version[0]) != SCHEMA_VERSION:
+        if version is None or not 1 <= int(version[0]) <= SCHEMA_VERSION:
             conn.close()
             raise RegistryError(f"{db_path} is not a compatible AI-MRG registry")
+        if int(version[0]) < SCHEMA_VERSION:
+            cls._migrate(conn)
         return cls(db_path, conn)
+
+    @staticmethod
+    def _migrate(conn: sqlite3.Connection) -> None:
+        """Upgrade an older registry in place. All migrations are additive."""
+        with conn:
+            conn.executescript(_DDL)
+            conn.execute(
+                "UPDATE meta SET value = ? WHERE key = 'schema_version'", (str(SCHEMA_VERSION),)
+            )
 
     @staticmethod
     def _connect(path: Path) -> sqlite3.Connection:
@@ -220,6 +241,11 @@ class Registry:
     def save(self, asset: AssetRecord) -> AssetRecord:
         """Persist changes to an existing asset (re-validated before saving)."""
         validated = AssetRecord.model_validate(asset.model_dump())
+        current = self._find(validated.id)
+        if current is not None and current.status != validated.status:
+            raise RegistryError(
+                "status changes go through the workflow (aimrg.workflow.transition), not save()"
+            )
         with self._tx() as conn:
             cursor = conn.execute(
                 "UPDATE assets SET name = ?, data = ?, updated_at = ? WHERE id = ?",
@@ -239,9 +265,6 @@ class Registry:
         if asset.classification is None:
             raise RegistryError(f"classify {asset.name!r} before assessing its risk tier")
         return self.save(asset.model_copy(update={"risk_assessment": assessment}))
-
-    def set_status(self, ref: str, status: LifecycleStatus) -> AssetRecord:
-        return self.save(self.get(ref).model_copy(update={"status": status}))
 
     def dependents(self, asset_id: str) -> list[AssetRecord]:
         return [a for a in self.assets() if asset_id in a.depends_on]
@@ -382,6 +405,39 @@ class Registry:
             ).fetchall()
         items = [Finding.model_validate_json(r[0]) for r in rows]
         return sorted(items, key=lambda f: f.opened_at)
+
+    # --- lifecycle events -------------------------------------------------------
+
+    def record_event(self, event: LifecycleEvent) -> LifecycleEvent:
+        """Append a lifecycle event and update the asset's status (one transaction).
+
+        Use :func:`aimrg.workflow.transition` rather than calling this directly: it
+        enforces the gates.
+        """
+        asset = self.get(event.asset_id)
+        if asset.status != event.from_status:
+            raise RegistryError(
+                f"{asset.name!r} is {asset.status.value}, not {event.from_status.value}"
+            )
+        stored = event.model_copy(update={"asset_id": asset.id})
+        updated = asset.model_copy(update={"status": event.to_status})
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO events (id, asset_id, occurred_at, data) VALUES (?, ?, ?, ?)",
+                (stored.id, asset.id, stored.occurred_at.isoformat(), stored.model_dump_json()),
+            )
+            conn.execute(
+                "UPDATE assets SET data = ?, updated_at = ? WHERE id = ?",
+                (updated.model_dump_json(), _now(), asset.id),
+            )
+        return stored
+
+    def events(self, ref: str) -> list[LifecycleEvent]:
+        rows = self._conn.execute(
+            "SELECT data FROM events WHERE asset_id = ? ORDER BY occurred_at, rowid",
+            (self.get(ref).id,),
+        ).fetchall()
+        return [LifecycleEvent.model_validate_json(r[0]) for r in rows]
 
 
 def _now() -> str:

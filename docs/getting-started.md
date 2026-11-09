@@ -20,10 +20,12 @@ Requires Python 3.11 or later.
 python examples/credit-scorecard/run_example.py demo
 ```
 
-This builds a registry from a **simulated** credit-card underwriting model, records
-development, validation and monitoring evidence, and writes a validation report (Markdown
-and Word) and an inventory report into `demo/`. The model passes validation, then drifts
-in the monitored period, so two monitoring checks fail and open findings.
+This takes a **simulated** credit-card underwriting model through its whole lifecycle:
+development testing, validation, fair-lending and adverse-action review (a fair-lending
+screen fails, opens a finding, and is resolved with a documented review), independent
+approval, production, and a monitoring cycle that detects drift and raises a change
+request. It writes validation, fair-lending, adverse-action and inventory reports into
+`demo/`.
 
 ## The workflow, step by step
 
@@ -128,7 +130,31 @@ aimrg report render inventory_report -o inventory.md
 Reports are drawn from recorded evidence. Judgments (conclusions, limitations, sign-off)
 are left as `[TO COMPLETE]` placeholders for people to write.
 
-### 10. Verify the audit trail
+### 10. Move through the lifecycle
+
+```bash
+aimrg status "Card Underwriting PD"
+aimrg transition "Card Underwriting PD" development
+aimrg transition "Card Underwriting PD" validation
+aimrg transition "Card Underwriting PD" approved --approver "Model Risk Committee"
+```
+
+Each move has a gate (required evidence, no blocking findings, an independent approver).
+See [Lifecycle workflow](workflow.md).
+
+### 11. Fair lending and adverse-action reasons
+
+```bash
+aimrg check run "Card Underwriting PD" FIN-CPR-002 --data decisions=decisions.csv \
+  --score pd_score --param group_prob_prefix=p_ --param control_group=group_a
+aimrg check run "Card Underwriting PD" FIN-CPR-001 --data decisions=decisions.csv \
+  --param reason_map=reasons.yaml
+aimrg report render fair_lending_report "Card Underwriting PD" -o fair_lending.md
+```
+
+See [Checks](checks.md) for the parameters.
+
+### 12. Verify the audit trail
 
 ```bash
 aimrg audit verify

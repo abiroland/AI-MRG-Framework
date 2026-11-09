@@ -1,0 +1,71 @@
+{% set fairness = results_for("fairness.") %}
+# Fair-Lending Testing Summary — {{ asset.name }}
+
+> {{ disclaimer }}
+
+> Screening metrics only. Disparities identified here do not by themselves establish discrimination, and their absence does not rule it out. Interpretation requires statistical and legal review.
+
+| | |
+|---|---|
+| **Asset** | {{ asset.name | cell }} (`{{ asset.id[:12] }}`) |
+| **Business uses** | {{ asset.business_uses | join(", ") | cell }} |
+| **Risk tier** | {{ asset.risk_assessment.tier }} |
+| **Governance pack** | {{ pack.ref }} |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+
+## 1. Scope and method
+
+[TO COMPLETE — fair-lending analyst: products and decisions covered, time period, protected classes tested, how group membership was determined (self-reported data or a proxy method such as BISG, with its known limitations), control groups, and the statistical tests used.]
+
+## 2. Results
+
+{% if not fairness %}
+No fair-lending check results have been recorded. Run `aimrg check run` for the fair-lending controls with `--param control_group=...` and either `--param group_col=...` or `--param group_prob_prefix=...`.
+{% endif %}
+{% for r in fairness %}
+### {{ r.check_id }} — {{ r.outcome | upper }}
+
+Control {{ r.evidence.control_id }} · recorded {{ r.evidence.recorded_at.strftime("%Y-%m-%d") }} by {{ r.evidence.actor }} · group membership: {{ r.inputs.get("membership", "—") }}
+
+{{ r.summary }}
+
+{% if r.tables.get("groups") %}
+{% set first = r.tables.groups[0] %}
+| Group | Role | Effective n |{% if "favorable_rate" in first %} Favorable rate | AIR | p-value |{% else %} Mean score | SMD |{% endif %}
+
+|---|---|---|{% if "favorable_rate" in first %}---|---|---|{% else %}---|---|{% endif %}
+
+{% for g in r.tables.groups %}
+| {{ g.group | cell }} | {{ g.role }} | {{ g.effective_n | num(1) }} |{% if "favorable_rate" in g %} {{ g.favorable_rate | pct }} | {{ g.adverse_impact_ratio | num }} | {{ g.p_value | num(4) }} |{% else %} {{ g.mean_score | num(4) }} | {{ g.standardized_mean_difference | num }} |{% endif %}
+
+{% endfor %}
+
+{% endif %}
+{% if r.thresholds %}
+| Threshold | Value | Warn | Fail | Bad when | Outcome |
+|---|---|---|---|---|---|
+{% for t in r.thresholds %}
+| {{ t.name | cell }} | {{ t.value | num }} | {{ t.warn | num }} | {{ t.fail | num }} | {{ t.direction }} | {{ t.outcome }} |
+{% endfor %}
+
+{% endif %}
+{% for note in r.notes %}
+- {{ note }}
+{% endfor %}
+
+{% endfor %}
+## 3. Less discriminatory alternatives
+
+[TO COMPLETE — describe any search for less discriminatory alternative models or policies, the alternatives considered, and the business-justification analysis.]
+
+## 4. Conclusion and actions
+
+[TO COMPLETE — fair-lending officer and counsel: conclusions, required actions, and owners.]
+
+## Related controls
+
+| Control | Title | Status |
+|---|---|---|
+{% for c in coverage_for("FIN-CPR-002", "FIN-CPR-003") %}
+| {{ c.control.id }} | {{ c.control.title | cell }} | {{ c.status.value }} |
+{% endfor %}
