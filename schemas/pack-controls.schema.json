@@ -32,8 +32,9 @@
         },
         "thresholds": {
           "additionalProperties": {
-            "type": "number"
+            "$ref": "#/$defs/Threshold"
           },
+          "description": "Overrides for the pack's default thresholds, keyed by threshold name.",
           "title": "Thresholds",
           "type": "object"
         }
@@ -180,6 +181,51 @@
         "source"
       ],
       "title": "Reference",
+      "type": "object"
+    },
+    "Threshold": {
+      "additionalProperties": false,
+      "properties": {
+        "warn": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Warn"
+        },
+        "fail": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fail"
+        },
+        "direction": {
+          "description": "Which side is bad.",
+          "pattern": "^(above|below)$",
+          "title": "Direction",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "direction"
+      ],
+      "title": "Threshold",
       "type": "object"
     }
   },

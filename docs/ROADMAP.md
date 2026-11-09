@@ -25,19 +25,21 @@
 
 **Goal:** a model validator can take a credit model from registration to a rendered validation report.
 
-- [ ] Registry with SQLite storage; bulk import from CSV/YAML
-- [ ] Classification wizard (SR 26-2 model test; GenAI/agentic routing; consequential-decision flag)
-- [ ] Tiering engine with the `fin-us-banking/default` profile
-- [ ] Control resolver and safe expression language
-- [ ] `fin-us-banking` pack v0.1: inventory, development, validation and monitoring controls (~30 controls)
-- [ ] Checks: `data`, `performance`, `stability`, `outcomes`
-- [ ] Evidence store with hash chain; `aimrg audit verify`
-- [ ] Templates: validation report, inventory/tiering report (Markdown + DOCX)
-- [ ] CLI: `init`, `register`, `tier`, `plan`, `check run`, `report render`
-- [ ] **Worked example:** an end-to-end credit scorecard on a public dataset, as a notebook and docs page
-- [ ] First PyPI release
+- [x] Registry with SQLite storage; bulk import from CSV/YAML
+- [x] Classification wizard (SR 26-2 model test; GenAI/agentic routing; consequential-decision flag)
+- [x] Tiering engine with the `fin-us-banking/default` profile
+- [x] Control resolver and safe expression language
+- [x] `fin-us-banking` pack v0.1: inventory, development, validation and monitoring controls (~30 controls)
+- [x] Checks: `data`, `performance`, `stability`, `outcomes`
+- [x] Evidence store with hash chain; `aimrg audit verify`
+- [x] Templates: validation report, inventory/tiering report (Markdown + DOCX)
+- [x] CLI: `init`, `register`, `tier`, `plan`, `check run`, `report render`
+- [x] **Worked example:** an end-to-end credit scorecard (`examples/credit-scorecard/`). *Uses simulated data; a version on a public dataset is still to do.*
+- [ ] First PyPI release *(needs a PyPI account and trusted-publishing setup by the maintainer)*
 
 **Exit criteria:** the example notebook runs end to end from a clean install; test coverage ≥ 80% on core.
+
+*Also delivered:* findings tracking from the CLI (`finding open/close/accept`), automatic findings for failing checks, evidence recording (`evidence add/list`), and a plugin entry point for third-party checks. Findings aging reports remain in Phase 2.
 
 ---
 

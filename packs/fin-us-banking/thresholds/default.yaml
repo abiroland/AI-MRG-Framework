@@ -31,3 +31,10 @@ thresholds:
     note: >
       Absolute standardized difference in mean scores between groups. Illustrative screening
       values only; no regulatory standard sets these levels.
+  backtest_relative_error:
+    warn: 0.10
+    fail: 0.25
+    direction: above
+    note: >
+      Relative gap between observed and predicted event rates over the monitored period.
+      Illustrative starting values; calibrate to portfolio size and volatility.

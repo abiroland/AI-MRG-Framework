@@ -105,6 +105,30 @@ class SourcesFile(_Model):
     sources: list[Source] = Field(min_length=1)
 
 
+# --- Thresholds ---------------------------------------------------------------
+
+
+class Threshold(_Model):
+    warn: float | None = None
+    fail: float | None = None
+    direction: str = Field(pattern=r"^(above|below)$", description="Which side is bad.")
+    note: str = ""
+
+    @model_validator(mode="after")
+    def _order(self) -> Threshold:
+        if self.warn is None and self.fail is None:
+            raise ValueError("set at least one of warn or fail")
+        if self.warn is not None and self.fail is not None:
+            bad = self.warn > self.fail if self.direction == "above" else self.warn < self.fail
+            if bad:
+                raise ValueError("warn must be reached before fail")
+        return self
+
+
+class ThresholdsFile(_Model):
+    thresholds: dict[str, Threshold] = Field(min_length=1)
+
+
 # --- Controls -----------------------------------------------------------------
 
 
@@ -116,7 +140,10 @@ class Reference(_Model):
 class CheckSpec(_Model):
     id: CheckId
     params: dict[str, str | int | float | bool] = Field(default_factory=dict)
-    thresholds: dict[str, float] = Field(default_factory=dict)
+    thresholds: dict[str, Threshold] = Field(
+        default_factory=dict,
+        description="Overrides for the pack's default thresholds, keyed by threshold name.",
+    )
 
 
 class Control(_Model):
@@ -222,30 +249,6 @@ class TieringProfile(_Model):
         return 4  # pragma: no cover - tier 4 min_score is always 0.0
 
 
-# --- Thresholds ---------------------------------------------------------------
-
-
-class Threshold(_Model):
-    warn: float | None = None
-    fail: float | None = None
-    direction: str = Field(pattern=r"^(above|below)$", description="Which side is bad.")
-    note: str = ""
-
-    @model_validator(mode="after")
-    def _order(self) -> Threshold:
-        if self.warn is None and self.fail is None:
-            raise ValueError("set at least one of warn or fail")
-        if self.warn is not None and self.fail is not None:
-            bad = self.warn > self.fail if self.direction == "above" else self.warn < self.fail
-            if bad:
-                raise ValueError("warn must be reached before fail")
-        return self
-
-
-class ThresholdsFile(_Model):
-    thresholds: dict[str, Threshold] = Field(min_length=1)
-
-
 # --- Assembled pack -----------------------------------------------------------
 
 
@@ -255,6 +258,11 @@ class Pack(_Model):
     controls: list[Control]
     tiering_profiles: list[TieringProfile]
     thresholds: dict[str, Threshold] = Field(default_factory=dict)
+    root: str | None = Field(default=None, description="Directory the pack was loaded from.")
+
+    @property
+    def templates_dir(self) -> str | None:
+        return f"{self.root}/templates" if self.root else None
 
     def control(self, control_id: str) -> Control:
         for c in self.controls:

@@ -30,7 +30,8 @@ Run `aimrg pack validate packs/<name>` after every change. It reports **all** pr
   evidence_required: [check_result, attestation]
   checks:
     - id: performance.out_of_time
-      thresholds: { gini_drop_warn: 0.05, gini_drop_fail: 0.10 }
+      thresholds:                      # optional overrides of pack defaults
+        gini_drop: { warn: 0.05, fail: 0.10, direction: above }
   references:
     - { source: SR-26-2, section: Model validation }
   guidance: Optional practical notes for implementers.

@@ -3,6 +3,7 @@
 from aimrg.core.models import (
     AICategory,
     AssetRecord,
+    CheckOutcome,
     Classification,
     EvidenceItem,
     EvidenceType,
@@ -20,6 +21,7 @@ from aimrg.core.models import (
 __all__ = [
     "AICategory",
     "AssetRecord",
+    "CheckOutcome",
     "Classification",
     "EvidenceItem",
     "EvidenceType",

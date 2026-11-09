@@ -62,10 +62,12 @@ jobs:
       - name: Smoke-test the wheel in a clean environment
         run: |
           python -m venv /tmp/wheel-env
-          /tmp/wheel-env/bin/pip install dist/*.whl
+          /tmp/wheel-env/bin/pip install "$(ls dist/*.whl)[docx]"
           cd /tmp
           /tmp/wheel-env/bin/aimrg --version
           /tmp/wheel-env/bin/aimrg pack validate fin-us-banking
+          /tmp/wheel-env/bin/python "$GITHUB_WORKSPACE/examples/credit-scorecard/run_example.py" /tmp/demo
+          cd /tmp/demo && /tmp/wheel-env/bin/aimrg audit verify
       - uses: actions/upload-artifact@v4
         with:
           name: dist

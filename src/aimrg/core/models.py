@@ -77,6 +77,16 @@ class EvidenceType(StrEnum):
     APPROVAL = "approval"
 
 
+class CheckOutcome(StrEnum):
+    PASS = "pass"  # noqa: S105 - not a password
+    WARN = "warn"
+    FAIL = "fail"
+    INFO = "info"
+    """Computed without a threshold to judge against."""
+    ERROR = "error"
+    """The check could not run (e.g. missing inputs)."""
+
+
 class Severity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
@@ -224,6 +234,12 @@ class EvidenceItem(_Model):
     control_id: NonEmptyStr
     type: EvidenceType
     summary: str = ""
+    check_id: str | None = Field(
+        default=None, description="For check_result evidence: which check produced it."
+    )
+    outcome: CheckOutcome | None = Field(
+        default=None, description="For check_result evidence: the overall check outcome."
+    )
     payload_uri: str | None = Field(default=None, description="Pointer to the stored artifact.")
     payload_sha256: Sha256Hex | None = None
     pack_version: NonEmptyStr = Field(examples=["fin-us-banking@0.1.0"])
