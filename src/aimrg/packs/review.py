@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from aimrg._csv import safe_cell
 from aimrg.packs.models import ControlStage, Pack
 
 #: Columns reviewers fill in, with the allowed answers ("" = free text).
@@ -51,15 +52,6 @@ INSTRUCTIONS = (
     "Use the Comments column for corrections, missing controls or better sources.",
     "Your review is not an endorsement. You choose how your name and affiliation appear.",
 )
-
-_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
-
-
-def safe_cell(value: Any) -> Any:
-    """Neutralize spreadsheet formula injection in text cells."""
-    if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
-        return "'" + value
-    return value
 
 
 def control_rows(pack: Pack) -> list[dict[str, str]]:

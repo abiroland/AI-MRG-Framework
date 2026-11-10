@@ -473,3 +473,24 @@ def test_init_if_missing_is_idempotent(tmp_path: Path, monkeypatch: pytest.Monke
     assert first.exit_code == 0 and "Created" in first.output
     second = runner.invoke(main, ["--db", "gov.db", "init", "--if-missing"])
     assert second.exit_code == 0 and "already exists" in second.output
+
+
+def test_reasons_derive_escapes_spreadsheet_formulas(cli, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    pd.DataFrame(
+        {"declined": [1, 0], "contrib_util": [0.9, 0.1], "contrib_age": [0.2, 0.3]}
+    ).to_csv("formula.csv", index=False)
+    Path("formula.yaml").write_text(
+        "reasons:\n"
+        "  util: {code: '@R1', text: '=HYPERLINK(\"http://example.com\",\"click\")'}\n"
+        "  age: {code: R2, text: Short credit history}\n",
+        encoding="utf-8",
+    )
+    args = ("reasons", "derive", "formula.csv", "--map", "formula.yaml")
+    _ok(cli(*args, "--text", "-o", "texts.csv"))
+    texts = pd.read_csv("texts.csv", keep_default_na=False)
+    assert texts.loc[0, "reason_1"] == '\'=HYPERLINK("http://example.com","click")'
+    assert texts.loc[0, "reason_2"] == "Short credit history"
+    _ok(cli(*args, "-o", "codes.csv"))
+    codes = pd.read_csv("codes.csv", keep_default_na=False)
+    assert codes.loc[0, "reason_1"] == "'@R1" and codes.loc[0, "reason_2"] == "R2"
+    assert codes.loc[0, "reason_3"] == ""
