@@ -79,10 +79,10 @@
 
 ## Phase 4 — Hardening & adoption (weeks 29–40) → `v1.0.0`
 
-- [ ] External review of the `fin-us-banking` pack by practitioners (validators, compliance officers); publish the review notes
-- [ ] Pilots with 1–3 institutions or consultancies (community banks, credit unions, fintechs), with written case studies (anonymized if needed)
-- [ ] Security review; signed releases; SBOM
-- [ ] Stable API and pack schema (semantic versioning commitment)
+- [ ] External review of the `fin-us-banking` pack by practitioners (validators, compliance officers); publish the review notes — *review kit, guide and issue form ready (4a); reviews pending*
+- [ ] Pilots with 1–3 institutions or consultancies (community banks, credit unions, fintechs), with written case studies (anonymized if needed) — *pilot guide and templates ready (4a); outreach under way*
+- [x] Security review (threat model, upload limits, template sandbox, artifact-name fix); dependency audit and CodeQL in CI; release provenance attestations and SBOM (4a)
+- [x] Versioning and stability policy for the CLI, API, pack format and packs (4a); 1.0 freezes it
 - [ ] Contributor onboarding: "good first issue" backlog, a contributor guide for writing new checks and packs
 - [ ] Healthcare pack design document (HIPAA, FDA AI-enabled device guidance, clinical fairness) — the start of the second sector
 

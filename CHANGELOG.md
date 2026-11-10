@@ -6,6 +6,18 @@ Packs are versioned separately; their changes are listed under **Packs**.
 
 ## [Unreleased]
 
+### Added (Phase 4a)
+- **Pack review kit**: `aimrg pack review-sheet` exports a practitioner review workbook (`.xlsx` with dropdowns, or `.csv`; `ai-mrg[review]`); `aimrg pack review-summary` turns a returned workbook into publishable notes. `pack.yaml` gains a `reviews:` list, and a pack marked `reviewed: true` must list at least one review. Reviewer guide, published-reviews page and a "Pack review" issue form.
+- **Pilot kit**: pilot guide (4–6 week plan, success measures, data handling), case-study template, and a factual use-statement template.
+- **Security**: threat model with deployer hardening checklist; request-body limit for the API (`AIMRG_MAX_UPLOAD_MB`, default 50 MB; `aimrg serve --max-upload-mb`); `nosniff` and `no-store` response headers; `pip-audit` job in CI; CodeQL analysis; releases now carry SLSA build-provenance attestations, a CycloneDX SBOM and `SHA256SUMS`.
+- **Versioning and stability policy** for the software, the pack format and packs.
+
+### Changed
+- Report templates render in Jinja's sandbox (packs are untrusted input).
+
+### Fixed
+- Uploaded file names could put path separators into stored artifact names; suffixes are now reduced to a plain extension or dropped.
+
 ## [0.3.0] — Phase 3
 
 ### Added (Phase 3b)

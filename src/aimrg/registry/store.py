@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -58,6 +59,7 @@ from aimrg.registry.backends import (
 
 SCHEMA_VERSION = 3
 ARTIFACT_SCHEME = "artifact://"
+_SAFE_SUFFIX = re.compile(r"(\.[A-Za-z0-9]{1,16})?")
 _RESOLVED = (FindingStatus.CLOSED, FindingStatus.RISK_ACCEPTED)
 
 
@@ -315,7 +317,13 @@ class Registry:
     # --- artifacts --------------------------------------------------------------
 
     def store_artifact(self, content: bytes, suffix: str = "") -> tuple[str, str]:
-        """Store bytes by content address. Returns ``(uri, sha256)``."""
+        """Store bytes by content address. Returns ``(uri, sha256)``.
+
+        ``suffix`` is kept only if it is a plain extension (``.pdf``, ``.json``); anything
+        else, such as a client-supplied name containing path separators, is dropped.
+        """
+        if not _SAFE_SUFFIX.fullmatch(suffix):
+            suffix = ""
         digest = hashlib.sha256(content).hexdigest()
         target = self.artifacts_dir / digest[:2] / f"{digest}{suffix}"
         if not target.exists():

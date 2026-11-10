@@ -998,8 +998,16 @@ def webhook_test(state: _State, webhook_id: str) -> None:
 @main.command()
 @click.option("--host", default="127.0.0.1", show_default=True)
 @click.option("--port", default=8000, show_default=True, type=int)
+@click.option(
+    "--max-upload-mb",
+    type=float,
+    default=None,
+    help="Largest accepted request body (default: AIMRG_MAX_UPLOAD_MB or 50).",
+)
 @pass_state
-def serve(state: _State, host: str, port: int) -> None:  # pragma: no cover - runs a server
+def serve(  # pragma: no cover - runs a server
+    state: _State, host: str, port: int, max_upload_mb: float | None
+) -> None:
     """Run the REST API (needs: pip install "ai-mrg[api]")."""
     try:
         import uvicorn
@@ -1008,7 +1016,7 @@ def serve(state: _State, host: str, port: int) -> None:  # pragma: no cover - ru
     except ImportError as exc:
         raise click.ClickException('the API needs: pip install "ai-mrg[api]"') from exc
     state.registry().close()  # fail fast if the registry is missing
-    uvicorn.run(create_app(state.db), host=host, port=port)
+    uvicorn.run(create_app(state.db, max_upload_mb=max_upload_mb), host=host, port=port)
 
 
 @main.command()
@@ -1352,7 +1360,9 @@ def pack_list() -> None:
             click.echo(f"{name}  (invalid; run `aimrg pack validate {name}`)")
             continue
         m = loaded.manifest
-        reviewed = "reviewed" if m.reviewed else "NOT YET REVIEWED"
+        reviewed = (
+            f"reviewed by {len(m.reviews)} practitioner(s)" if m.reviewed else "NOT YET REVIEWED"
+        )
         click.echo(f"{m.ref}  {m.title}  [effective as of {m.effective_as_of}; {reviewed}]")
 
 
@@ -1385,6 +1395,56 @@ def pack_validate(target: str) -> None:
     click.echo(f"  thresholds      : {len(loaded.thresholds)}")
     if missing_checks:
         click.echo(f"  checks not yet implemented: {', '.join(missing_checks)}")
+
+
+def _pack_path(target: str) -> Path:
+    path = Path(target)
+    if not path.is_dir() and target in builtin_pack_names():
+        path = builtin_packs_dir() / target
+    return path
+
+
+@pack.command("review-sheet")
+@click.argument("target")
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(dir_okay=False, path_type=Path),
+    required=True,
+    help="A .xlsx workbook (instructions, controls, sources) or a controls-only .csv.",
+)
+def pack_review_sheet(target: str, output: Path) -> None:
+    """Export a review workbook for practitioners reviewing a pack."""
+    from aimrg.packs.review import write_review_sheet
+
+    try:
+        loaded = load_pack(_pack_path(target))
+        path = write_review_sheet(loaded, output)
+    except (PackValidationError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.secho(f"wrote {path} ({len(loaded.controls)} controls)", fg="green")
+
+
+@pack.command("review-summary")
+@click.argument("returned", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--pack", "target", default="fin-us-banking", show_default=True)
+@click.option("-o", "--output", type=click.Path(dir_okay=False, path_type=Path), default=None)
+def pack_review_summary(returned: Path, target: str, output: Path | None) -> None:
+    """Summarize a returned review workbook as Markdown notes for publication."""
+    from aimrg.packs.review import summarize_review
+
+    loaded = load_pack(_pack_path(target))
+    summary = summarize_review(returned)
+    text = summary.to_markdown(loaded.manifest.ref)
+    if output is None:
+        click.echo(text)
+    else:
+        output.write_text(text, encoding="utf-8")
+        click.secho(
+            f"wrote {output}: {summary.answered}/{summary.total} controls answered, "
+            f"{len(summary.flagged)} flagged",
+            fg="green",
+        )
 
 
 # --- schemas --------------------------------------------------------------------

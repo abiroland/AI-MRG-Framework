@@ -1,0 +1,47 @@
+name: Pack review
+description: Volunteer to review a governance pack, or submit review notes
+labels: [pack-review]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! See the [review guide](https://abiroland.github.io/ai-mrg-framework/review/guide/).
+        Please do not include confidential information from your institution or from examinations.
+  - type: input
+    id: pack
+    attributes:
+      label: Pack and version
+      placeholder: fin-us-banking@0.1.0-dev
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options: [All controls, Governance and inventory, Development and validation, Monitoring, Third-party, Consumer protection (ECOA/Reg B, fair lending, FCRA, Colorado), AI-system track (GenAI/agentic), Sources only]
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: Your role (as you'd like it published)
+      placeholder: Model validator at a U.S. community bank
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Review notes or summary
+      description: Attach the completed workbook or paste the output of `aimrg pack review-summary`. Leave empty to volunteer and receive a workbook.
+  - type: textarea
+    id: conflicts
+    attributes:
+      label: Conflicts of interest
+      placeholder: none declared
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Acknowledgment
+      options:
+        - label: I understand a review is not an endorsement, and that I will approve anything published under my name before it appears.
+          required: true

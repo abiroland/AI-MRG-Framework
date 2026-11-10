@@ -2,6 +2,66 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/abiroland/ai-mrg-framework/main/schemas/pack-manifest.schema.json",
   "$defs": {
+    "PackReview": {
+      "additionalProperties": false,
+      "description": "A practitioner review of a pack, published with the pack.",
+      "properties": {
+        "reviewer": {
+          "description": "Name, or 'Anonymous' if withheld.",
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "role": {
+          "examples": [
+            "Model validator at a U.S. community bank"
+          ],
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "affiliation": {
+          "default": "",
+          "description": "May be left blank at the reviewer's request.",
+          "title": "Affiliation",
+          "type": "string"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "scope": {
+          "examples": [
+            "All controls",
+            "Consumer-protection controls"
+          ],
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "description": "Path or URL of the published review notes.",
+          "title": "Notes",
+          "type": "string"
+        },
+        "conflicts": {
+          "default": "none declared",
+          "description": "Declared conflicts of interest.",
+          "title": "Conflicts",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewer",
+        "role",
+        "date",
+        "scope"
+      ],
+      "title": "PackReview",
+      "type": "object"
+    },
     "Sector": {
       "enum": [
         "financial_services",
@@ -57,6 +117,14 @@
       "description": "True once practitioner reviewers have signed off.",
       "title": "Reviewed",
       "type": "boolean"
+    },
+    "reviews": {
+      "description": "Published practitioner reviews of this version.",
+      "items": {
+        "$ref": "#/$defs/PackReview"
+      },
+      "title": "Reviews",
+      "type": "array"
     }
   },
   "required": [
