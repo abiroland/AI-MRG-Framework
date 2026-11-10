@@ -50,6 +50,29 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest --cov --cov-report=term-missing
 
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: aimrg
+          POSTGRES_PASSWORD: aimrg
+          POSTGRES_DB: aimrg
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aimrg"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AIMRG_TEST_POSTGRES: postgresql://aimrg:aimrg@localhost:5432/aimrg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e ".[dev]"
+      - run: pytest -k "postgres" -q
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -62,12 +85,13 @@ jobs:
       - name: Smoke-test the wheel in a clean environment
         run: |
           python -m venv /tmp/wheel-env
-          /tmp/wheel-env/bin/pip install "$(ls dist/*.whl)[docx]"
+          /tmp/wheel-env/bin/pip install "$(ls dist/*.whl)[docx,api]"
           cd /tmp
           /tmp/wheel-env/bin/aimrg --version
           /tmp/wheel-env/bin/aimrg pack validate fin-us-banking
           /tmp/wheel-env/bin/python "$GITHUB_WORKSPACE/examples/credit-scorecard/run_example.py" /tmp/demo
           cd /tmp/demo && /tmp/wheel-env/bin/aimrg audit verify
+          /tmp/wheel-env/bin/python -c "from aimrg.api import create_app; create_app('/tmp/demo/aimrg.db')"
       - uses: actions/upload-artifact@v7
         with:
           name: dist

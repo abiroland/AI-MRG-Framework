@@ -32,6 +32,8 @@ nav:
   - Getting started: getting-started.md
   - Checks: checks.md
   - Lifecycle workflow: workflow.md
+  - REST API and webhooks: api.md
+  - Deployment: deployment.md
   - Writing packs: packs.md
   - Design:
       - Architecture: ARCHITECTURE.md
@@ -43,3 +45,4 @@ nav:
       - "ADR-0003: Local-first": adr/0003-local-first.md
       - "ADR-0004: Streamlit first": adr/0004-streamlit-first-dashboard.md
       - "ADR-0005: SQLite storage": adr/0005-sqlite-stdlib-storage.md
+      - "ADR-0006: PostgreSQL and API tokens": adr/0006-postgres-and-api-tokens.md

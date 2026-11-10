@@ -432,3 +432,35 @@ def test_audit_verify_reports_problems(cli, tmp_path: Path) -> None:  # type: ig
         artifact.write_text("tampered", encoding="utf-8")
     result = cli("audit", "verify")
     assert result.exit_code == 1 and "artifact altered" in result.output
+
+
+def test_init_postgres_via_cli(tmp_path: Path) -> None:
+    from conftest import POSTGRES_URL, _postgres_database
+
+    if not POSTGRES_URL:
+        pytest.skip("set AIMRG_TEST_POSTGRES to run PostgreSQL tests")
+    runner = CliRunner()
+    with _postgres_database() as url:
+        missing = runner.invoke(main, ["--db", url, "init"])
+        assert missing.exit_code != 0 and "artifacts directory" in missing.output
+        ok = runner.invoke(main, ["--db", url, "init", "--artifacts-dir", str(tmp_path / "a")])
+        assert ok.exit_code == 0 and "PostgreSQL registry" in ok.output
+        again = runner.invoke(main, ["--db", url, "init", "--artifacts-dir", str(tmp_path / "a")])
+        assert again.exit_code != 0 and "already contains" in again.output
+        reg = runner.invoke(
+            main,
+            [
+                "--db",
+                url,
+                "register",
+                "A",
+                "--owner",
+                "o",
+                "--use",
+                "u",
+                "--category",
+                "traditional",
+            ],
+        )
+        assert reg.exit_code == 0
+        assert "A" in runner.invoke(main, ["--db", url, "list"]).output

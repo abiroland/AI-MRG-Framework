@@ -39,6 +39,7 @@ from aimrg.packs.loader import (
 from aimrg.packs.models import ControlStage
 from aimrg.packs.resolver import ResolverError, coverage
 from aimrg.registry import Registry, RegistryError, import_assets
+from aimrg.registry.accounts import WEBHOOK_EVENTS, Role, Webhook, deliver
 from aimrg.reports import available_templates, markdown_to_docx, render
 from aimrg.schema import export_schemas, stale_schemas
 from aimrg.tiering import assess_asset
@@ -73,7 +74,7 @@ def _table(headers: Sequence[str], rows: Sequence[Sequence[Any]]) -> None:
 
 
 class _State:
-    def __init__(self, db: Path, actor: str) -> None:
+    def __init__(self, db: str, actor: str) -> None:
         self.db = db
         self.actor = actor
 
@@ -95,11 +96,10 @@ def _fail(exc: Exception) -> click.ClickException:
 @click.version_option(__version__, prog_name="aimrg")
 @click.option(
     "--db",
-    type=click.Path(dir_okay=False, path_type=Path),
     default="aimrg.db",
     envvar="AIMRG_DB",
     show_default=True,
-    help="Registry database file (or set AIMRG_DB).",
+    help="Registry: a SQLite file or a postgresql:// URL (or set AIMRG_DB).",
 )
 @click.option(
     "--actor",
@@ -108,7 +108,7 @@ def _fail(exc: Exception) -> click.ClickException:
     help="Who is acting; recorded on evidence (or set AIMRG_ACTOR). Defaults to your login.",
 )
 @click.pass_context
-def main(ctx: click.Context, db: Path, actor: str) -> None:
+def main(ctx: click.Context, db: str, actor: str) -> None:
     """AI-MRG: open-source AI and model risk governance toolkit.
 
     Not legal advice. Using AI-MRG does not by itself establish compliance.
@@ -121,14 +121,22 @@ def main(ctx: click.Context, db: Path, actor: str) -> None:
 
 @main.command()
 @click.option("--pack", default="fin-us-banking", show_default=True, help="Pack name or path.")
+@click.option(
+    "--artifacts-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Where evidence artifacts are stored (required for PostgreSQL; defaults to "
+    "<db>-artifacts next to a SQLite file).",
+)
 @pass_state
-def init(state: _State, pack: str) -> None:
+def init(state: _State, pack: str, artifacts_dir: Path | None) -> None:
     """Create a new registry."""
     try:
-        registry = Registry.create(state.db, pack=pack)
+        registry = Registry.create(state.db, pack=pack, artifacts_dir=artifacts_dir)
     except (RegistryError, PackValidationError) as exc:
         raise _fail(exc) from exc
-    click.secho(f"Created {state.db} using {registry.pack.manifest.ref}", fg="green")
+    where = "PostgreSQL registry" if registry.backend == "postgresql" else state.db
+    click.secho(f"Created {where} using {registry.pack.manifest.ref}", fg="green")
     if not registry.pack.manifest.reviewed:
         click.secho(
             "Note: this pack's content is a draft, not yet practitioner-reviewed.", fg="yellow"
@@ -826,6 +834,169 @@ def status_cmd(state: _State, asset: str) -> None:
             click.secho(f"  ✗ {gate.target.value}", fg="red")
             for blocker in gate.blockers:
                 click.echo(f"      - {blocker}")
+
+
+# --- users and webhooks ---------------------------------------------------------
+
+
+@main.group()
+def user() -> None:
+    """API users and tokens (for `aimrg serve`)."""
+
+
+@user.command("add")
+@click.argument("name")
+@click.option(
+    "--role",
+    "roles",
+    multiple=True,
+    required=True,
+    type=click.Choice([r.value for r in Role]),
+    help="Role (repeatable).",
+)
+@pass_state
+def user_add(state: _State, name: str, roles: tuple[str, ...]) -> None:
+    """Create an API user and print its token (shown only once)."""
+    with state.registry() as registry:
+        try:
+            created, token = registry.add_user(name, list(roles))
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho(f"Created user {created.name} ({', '.join(created.roles)})", fg="green")
+    click.echo(f"Token (store it securely; it will not be shown again):\n{token}")
+
+
+@user.command("list")
+@pass_state
+def user_list(state: _State) -> None:
+    """List API users."""
+    with state.registry() as registry:
+        users = registry.users()
+    if not users:
+        click.echo("No users.")
+        return
+    _table(
+        ["Name", "Roles", "Active", "Created"],
+        [
+            [u.name, ", ".join(u.roles), "yes" if u.active else "no", u.created_at.date()]
+            for u in users
+        ],
+    )
+
+
+@user.command("disable")
+@click.argument("name")
+@pass_state
+def user_disable(state: _State, name: str) -> None:
+    """Disable a user; their token stops working."""
+    with state.registry() as registry:
+        try:
+            registry.set_user_active(name, False)
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho(f"Disabled {name}", fg="yellow")
+
+
+@user.command("rotate-token")
+@click.argument("name")
+@pass_state
+def user_rotate(state: _State, name: str) -> None:
+    """Issue a new token for a user; the old one stops working."""
+    with state.registry() as registry:
+        try:
+            token = registry.rotate_token(name)
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.echo(f"New token for {name} (shown once):\n{token}")
+
+
+@main.group()
+def webhook() -> None:
+    """Webhook notifications (findings, failed checks, lifecycle changes)."""
+
+
+@webhook.command("add")
+@click.argument("url")
+@click.option(
+    "--event",
+    "events",
+    multiple=True,
+    type=click.Choice(["*", *WEBHOOK_EVENTS]),
+    help="Event to send (repeatable; default: all).",
+)
+@pass_state
+def webhook_add(state: _State, url: str, events: tuple[str, ...]) -> None:
+    """Send signed JSON notifications to URL."""
+    try:
+        hook = Webhook(url=url, events=list(events) or ["*"])
+    except ValueError as exc:
+        raise click.BadParameter(str(exc)) from exc
+    with state.registry() as registry:
+        registry.add_webhook(hook)
+    click.secho(f"Added webhook {hook.id[:8]} → {hook.url} ({', '.join(hook.events)})", fg="green")
+    click.echo(
+        "Signing secret (verify the X-AIMRG-Signature header with HMAC-SHA256; shown once):\n"
+        f"{hook.secret}"
+    )
+
+
+@webhook.command("list")
+@pass_state
+def webhook_list(state: _State) -> None:
+    """List webhooks."""
+    with state.registry() as registry:
+        hooks = registry.webhooks()
+    if not hooks:
+        click.echo("No webhooks.")
+        return
+    _table(["Id", "URL", "Events"], [[h.id[:8], h.url, ", ".join(h.events)] for h in hooks])
+
+
+@webhook.command("remove")
+@click.argument("webhook_id")
+@pass_state
+def webhook_remove(state: _State, webhook_id: str) -> None:
+    """Remove a webhook (id prefix ok)."""
+    with state.registry() as registry:
+        try:
+            registry.remove_webhook(webhook_id)
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho("Removed.", fg="green")
+
+
+@webhook.command("test")
+@click.argument("webhook_id")
+@pass_state
+def webhook_test(state: _State, webhook_id: str) -> None:
+    """Send a test notification."""
+    with state.registry() as registry:
+        matches = [h for h in registry.webhooks() if h.id.startswith(webhook_id)]
+    if len(matches) != 1:
+        raise click.ClickException(f"no unique webhook matching {webhook_id!r}")
+    result = deliver(matches[0], "test", {"message": "AI-MRG webhook test"})
+    if not result.ok:
+        raise click.ClickException(f"delivery failed: {result.detail}")
+    click.secho(f"Delivered ({result.detail})", fg="green")
+
+
+# --- API server -----------------------------------------------------------------
+
+
+@main.command()
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", default=8000, show_default=True, type=int)
+@pass_state
+def serve(state: _State, host: str, port: int) -> None:  # pragma: no cover - runs a server
+    """Run the REST API (needs: pip install "ai-mrg[api]")."""
+    try:
+        import uvicorn
+
+        from aimrg.api import create_app
+    except ImportError as exc:
+        raise click.ClickException('the API needs: pip install "ai-mrg[api]"') from exc
+    state.registry().close()  # fail fast if the registry is missing
+    uvicorn.run(create_app(state.db), host=host, port=port)
 
 
 # --- adverse action -------------------------------------------------------------

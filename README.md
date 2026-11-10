@@ -2,7 +2,7 @@
 
 **An open-source, full-lifecycle AI and model risk governance toolkit for U.S. regulated industries — starting with financial services.**
 
-> Status: **v0.2 in progress (Phase 2a)**. Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes, **fair lending**, **adverse-action reasons**), a gated **lifecycle workflow** with independent approval, a tamper-evident evidence trail, findings with aging, and reports in Markdown and Word all work from the `aimrg` CLI and Python. The REST API and Postgres support come next, then the GenAI/agentic track. See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
+> Status: **v0.2 (Phase 2)**. Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes, **fair lending**, **adverse-action reasons**), a gated **lifecycle workflow** with independent approval, a tamper-evident evidence trail, findings with aging, reports in Markdown and Word, a **REST API** with role-based access, **PostgreSQL** support and signed **webhooks**. Next: the dashboard and the GenAI/agentic track (Phase 3). See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
 
 [![CI](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml)
 

@@ -207,7 +207,7 @@ markdown_to_docx(render(reg, "validation_report", asset.id), "validation_report.
 
 ### 5.3 REST API (FastAPI)
 - Same operations as the SDK, with OpenAPI docs.
-- Auth: local accounts for small installs, OIDC for institutions.
+- Auth: bearer tokens issued from the CLI (v0.2, [ADR-0006](adr/0006-postgres-and-api-tokens.md)); OIDC for institutions is planned.
 - Role-based access: developer, validator, model owner, approver, auditor (read-only), admin. Developers cannot approve their own models; this enforces the separation SR 26-2 asks for between development and validation.
 
 ### 5.4 Dashboard
@@ -301,7 +301,7 @@ ai-mrg/
 |---|---|---|
 | Language | Python ≥ 3.11 | It's what model developers and validators already use |
 | Schemas | Pydantic v2 + JSON Schema | Validation, plus interoperability |
-| Storage | Standard-library SQLite in v0.1 ([ADR-0005](adr/0005-sqlite-stdlib-storage.md)); Postgres in Phase 2 | Zero-setup start; scales to multi-user later |
+| Storage | SQLite by default ([ADR-0005](adr/0005-sqlite-stdlib-storage.md)); PostgreSQL for teams ([ADR-0006](adr/0006-postgres-and-api-tokens.md)) | Zero-setup start; multi-user when needed |
 | API | FastAPI | Typed, generates OpenAPI |
 | Dashboard | Streamlit (v0.3) | Fastest path to a usable UI |
 | Docs rendering | Jinja2 → Markdown → python-docx / PDF | Examiner-friendly formats |
