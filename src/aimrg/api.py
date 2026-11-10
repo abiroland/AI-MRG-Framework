@@ -13,6 +13,11 @@ Security model
   decisions additionally go through the workflow's independence rules, with the
   authenticated user as the approver.
 * User and webhook administration is CLI-only.
+* Request bodies are capped (``AIMRG_MAX_UPLOAD_MB``, default 50 MB); larger requests
+  get HTTP 413 before they are read into memory.
+* Responses carry ``X-Content-Type-Options: nosniff`` and ``Cache-Control: no-store``.
+
+See ``docs/security/threat-model.md``.
 """
 
 # No `from __future__ import annotations`: FastAPI must resolve the dependency
@@ -20,6 +25,7 @@ Security model
 
 import io
 import json
+import os
 from collections.abc import Callable, Iterator
 from datetime import date
 from typing import Annotated, Any, Literal
@@ -29,6 +35,8 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, sta
 from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.datastructures import UploadFile
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from aimrg import __version__
 from aimrg.checks import run_control_checks
@@ -152,11 +160,110 @@ class AuditOut(BaseModel):
     problems: list[str]
 
 
+# --- limits & headers -----------------------------------------------------------------
+
+DEFAULT_MAX_UPLOAD_MB = 50.0
+
+
+def max_upload_bytes(value: float | None = None) -> int:
+    """The request-body limit in bytes: ``value`` MB, else ``AIMRG_MAX_UPLOAD_MB``."""
+    if value is None:
+        raw = os.environ.get("AIMRG_MAX_UPLOAD_MB", "").strip()
+        try:
+            value = float(raw) if raw else DEFAULT_MAX_UPLOAD_MB
+        except ValueError as exc:
+            raise ValueError(f"AIMRG_MAX_UPLOAD_MB must be a number, got {raw!r}") from exc
+    if value <= 0:
+        raise ValueError("the upload limit must be positive")
+    return int(value * 1024 * 1024)
+
+
+class BodyLimitMiddleware:
+    """Reject request bodies over ``limit`` bytes with HTTP 413.
+
+    Checks ``Content-Length`` up front, and counts streamed bytes so chunked requests
+    without a length are capped too. Also adds conservative security headers.
+    """
+
+    def __init__(self, app: ASGIApp, limit: int) -> None:
+        self.app = app
+        self.limit = limit
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope.get("headers") or [])
+        declared = headers.get(b"content-length")
+        if declared is not None:
+            try:
+                too_big = int(declared) > self.limit
+            except ValueError:
+                too_big = False
+            if too_big:
+                await self._reject(send)
+                return
+
+        received = 0
+        started = False
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.limit:
+                    # Starlette/FastAPI's exception middleware turns this into a 413.
+                    raise StarletteHTTPException(413, self._message())
+            return message
+
+        async def secure_send(message: Message) -> None:
+            nonlocal started
+            if message["type"] == "http.response.start":
+                started = True
+                extra = [
+                    (b"x-content-type-options", b"nosniff"),
+                    (b"cache-control", b"no-store"),
+                ]
+                existing = {k.lower() for k, _ in message.get("headers", [])}
+                message["headers"] = list(message.get("headers", [])) + [
+                    h for h in extra if h[0] not in existing
+                ]
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, secure_send)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 413 or started:
+                raise
+            await self._reject(send)
+
+    def _message(self) -> str:
+        return f"request body exceeds the {self.limit / (1024 * 1024):g} MB limit"
+
+    async def _reject(self, send: Send) -> None:
+        body = json.dumps({"detail": self._message()}).encode()
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": body})
+
+
 # --- app ------------------------------------------------------------------------------
 
 
-def create_app(db: str) -> FastAPI:
-    """Create the API for the registry at ``db`` (SQLite path or PostgreSQL URL)."""
+def create_app(db: str, *, max_upload_mb: float | None = None) -> FastAPI:
+    """Create the API for the registry at ``db`` (SQLite path or PostgreSQL URL).
+
+    ``max_upload_mb`` caps request bodies (default: ``AIMRG_MAX_UPLOAD_MB`` or 50 MB).
+    """
     app = FastAPI(
         title="AI-MRG",
         version=__version__,
@@ -166,6 +273,7 @@ def create_app(db: str) -> FastAPI:
         ),
     )
     app.state.db = db
+    app.add_middleware(BodyLimitMiddleware, limit=max_upload_bytes(max_upload_mb))
 
     def get_registry(request: Request) -> Iterator[Registry]:
         try:

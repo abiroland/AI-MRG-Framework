@@ -38,7 +38,16 @@ nav:
   - REST API and webhooks: api.md
   - MLflow: mlflow.md
   - Deployment: deployment.md
+  - Security and stability:
+      - Threat model: security/threat-model.md
+      - Versioning and stability: stability.md
   - Writing packs: packs.md
+  - Get involved:
+      - Review a pack: review/guide.md
+      - Published reviews: reviews/README.md
+      - Pilot AI-MRG: pilots/guide.md
+      - Case-study template: pilots/case-study-template.md
+      - Use statement template: pilots/use-statement-template.md
   - Design:
       - Architecture: ARCHITECTURE.md
       - Regulatory map: REGULATORY_MAP.md

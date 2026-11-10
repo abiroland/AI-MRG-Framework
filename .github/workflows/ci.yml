@@ -32,6 +32,22 @@ jobs:
           aimrg pack validate packs/fin-us-banking
           aimrg schema export schemas --check
 
+  audit:
+    # Known-vulnerability scan of the full dependency set (every extra), in a clean venv.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install into a clean environment
+        run: |
+          python -m venv /tmp/env
+          /tmp/env/bin/pip install ".[all]"
+          pip install pip-audit
+      - name: pip-audit
+        run: pip-audit --path /tmp/env/lib/python3.13/site-packages --skip-editable
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:

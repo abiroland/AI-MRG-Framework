@@ -16,7 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, TemplateNotFound
+from jinja2 import FileSystemLoader, StrictUndefined, TemplateNotFound
+from jinja2.sandbox import SandboxedEnvironment
 
 from aimrg import __version__
 from aimrg.checks.genai import GAI_CATEGORY_RISKS, NIST_600_1_RISKS
@@ -65,17 +66,19 @@ def _num(value: Any, digits: int = 3) -> str:
         return str(value)
 
 
-def _environment(registry: Registry) -> Environment:
+def _environment(registry: Registry) -> SandboxedEnvironment:
+    # Templates ship with packs, and third-party packs are untrusted: the sandbox blocks
+    # access to unsafe attributes (e.g. ``__class__``/``__subclasses__``) from templates.
     templates = registry.pack.templates_dir
     if templates is None or not Path(templates).is_dir():
         raise RegistryError(f"pack {registry.pack.manifest.ref} has no templates directory")
-    env = Environment(
+    env = SandboxedEnvironment(
         loader=FileSystemLoader(templates),
         undefined=StrictUndefined,
         keep_trailing_newline=True,
         trim_blocks=True,
         lstrip_blocks=True,
-        autoescape=False,  # noqa: S701 - output is Markdown, not HTML
+        autoescape=False,  # output is Markdown, not HTML
     )
     env.filters.update(cell=_cell, pct=_pct, num=_num)
     return env

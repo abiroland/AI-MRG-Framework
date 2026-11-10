@@ -73,6 +73,18 @@ class Sector(StrEnum):
 # --- Manifest and sources -----------------------------------------------------
 
 
+class PackReview(_Model):
+    """A practitioner review of a pack, published with the pack."""
+
+    reviewer: NonEmptyStr = Field(description="Name, or 'Anonymous' if withheld.")
+    role: NonEmptyStr = Field(examples=["Model validator at a U.S. community bank"])
+    affiliation: str = Field(default="", description="May be left blank at the reviewer's request.")
+    date: date
+    scope: NonEmptyStr = Field(examples=["All controls", "Consumer-protection controls"])
+    notes: str = Field(default="", description="Path or URL of the published review notes.")
+    conflicts: str = Field(default="none declared", description="Declared conflicts of interest.")
+
+
 class PackManifest(_Model):
     name: Slug
     version: SemVer
@@ -84,6 +96,15 @@ class PackManifest(_Model):
     reviewed: bool = Field(
         default=False, description="True once practitioner reviewers have signed off."
     )
+    reviews: list[PackReview] = Field(
+        default_factory=list, description="Published practitioner reviews of this version."
+    )
+
+    @model_validator(mode="after")
+    def _reviewed_needs_reviews(self) -> PackManifest:
+        if self.reviewed and not self.reviews:
+            raise ValueError("a pack marked reviewed must list at least one review")
+        return self
 
     @property
     def ref(self) -> str:
