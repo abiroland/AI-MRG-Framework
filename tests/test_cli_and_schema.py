@@ -82,5 +82,7 @@ def test_pack_yaml_files_validate_against_published_schemas(
         *[(p, "pack-thresholds.schema.json") for p in (fin_pack_dir / "thresholds").glob("*")],
     ]
     for path, schema_name in pairs:
-        instance = json.loads(json.dumps(yaml.safe_load(path.read_text()), default=str))
+        instance = json.loads(
+            json.dumps(yaml.safe_load(path.read_text(encoding="utf-8")), default=str)
+        )
         jsonschema.validate(instance, schema(schema_name))

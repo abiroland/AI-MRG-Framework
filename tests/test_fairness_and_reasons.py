@@ -201,7 +201,7 @@ def test_reason_mapping_check(decisions: pd.DataFrame, tmp_path: Path) -> None:
     assert sum(r["applicants_as_primary_reason"] for r in ok.tables["primary_reasons"]) == int(
         decisions.declined.sum()
     )
-    partial = yaml.safe_load(REASONS.read_text())["reasons"]
+    partial = yaml.safe_load(REASONS.read_text(encoding="utf-8"))["reasons"]
     partial.pop("utilization")
     partial["ghost_factor"] = {"code": "R99", "text": "A factor the model does not use"}
     missing = run_check(
