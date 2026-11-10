@@ -16,6 +16,7 @@ Packs are versioned separately; their changes are listed under **Packs**.
 - Report templates render in Jinja's sandbox (packs are untrusted input).
 
 ### Fixed
+- `aimrg reasons derive` now neutralizes spreadsheet formulas (cells starting with `=`, `+`, `-`, `@`, tab or CR) in the reason-code CSV, as the pack review workbook already did (threat model T9).
 - Uploaded file names could put path separators into stored artifact names; suffixes are now reduced to a plain extension or dropped.
 
 ## [0.3.0] — Phase 3

@@ -14,6 +14,7 @@ import click
 import pandas as pd
 
 from aimrg import __version__
+from aimrg._csv import safe_cell
 from aimrg.adverse_action import derive_reasons, load_reason_map, reason_texts
 from aimrg.checks import available_checks, get_check, run_control_checks
 from aimrg.core.classify import QUESTIONS, classify
@@ -1217,7 +1218,7 @@ def reasons_derive(
     except ValueError as exc:
         raise _fail(exc) from exc
     result = reason_texts(codes, reason_map) if text else codes
-    result.to_csv(output, index_label="row")
+    result.map(safe_cell).to_csv(output, index_label="row")
     unmapped = int(
         codes.apply(lambda c: c.astype("string").str.startswith("UNMAPPED:")).sum().sum()
     )

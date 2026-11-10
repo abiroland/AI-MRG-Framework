@@ -7,13 +7,13 @@ import pytest
 from click.testing import CliRunner
 from pydantic import ValidationError
 
+from aimrg._csv import safe_cell
 from aimrg.cli import main
 from aimrg.packs import load_builtin_pack
 from aimrg.packs.models import PackManifest
 from aimrg.packs.review import (
     REVIEW_COLUMNS,
     control_rows,
-    safe_cell,
     summarize_review,
     write_review_sheet,
 )
