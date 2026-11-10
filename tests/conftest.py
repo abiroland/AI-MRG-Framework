@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import os
 import shutil
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -22,13 +25,50 @@ def pack_copy(tmp_path: Path) -> Path:
     return target
 
 
-@pytest.fixture
-def registry(tmp_path: Path):  # type: ignore[no-untyped-def]
+POSTGRES_URL = os.environ.get("AIMRG_TEST_POSTGRES")
+
+
+@contextmanager
+def _postgres_database():  # type: ignore[no-untyped-def]
+    import psycopg
+
+    assert POSTGRES_URL
+    name = f"aimrg_test_{uuid.uuid4().hex[:12]}"
+    with psycopg.connect(POSTGRES_URL, autocommit=True) as admin:
+        admin.execute(f'CREATE DATABASE "{name}"')
+    try:
+        yield POSTGRES_URL.rsplit("/", 1)[0] + "/" + name
+    finally:
+        with psycopg.connect(POSTGRES_URL, autocommit=True) as admin:
+            admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+
+
+@pytest.fixture(params=["sqlite", "postgres"])
+def registry(request: pytest.FixtureRequest, tmp_path: Path):  # type: ignore[no-untyped-def]
+    """A fresh registry on each backend. PostgreSQL runs when AIMRG_TEST_POSTGRES is set
+    to a server URL whose user may create databases."""
     from aimrg.registry import Registry
 
-    reg = Registry.create(tmp_path / "gov.db", pack=str(FIN_PACK))
-    yield reg
-    reg.close()
+    if request.param == "sqlite":
+        reg = Registry.create(tmp_path / "gov.db", pack=str(FIN_PACK))
+        yield reg
+        reg.close()
+        return
+    if not POSTGRES_URL:
+        pytest.skip("set AIMRG_TEST_POSTGRES to run PostgreSQL tests")
+    with _postgres_database() as url:
+        reg = Registry.create(url, pack=str(FIN_PACK), artifacts_dir=tmp_path / "artifacts")
+        yield reg
+        reg.close()
+
+
+def disable_append_only(registry, table: str) -> None:  # type: ignore[no-untyped-def]
+    """Drop the append-only trigger on ``table`` (to simulate an attacker in tests)."""
+    if registry.backend == "sqlite":
+        prefix = "evidence" if table == "evidence" else "events"
+        registry._db.script(f"DROP TRIGGER {prefix}_no_update; DROP TRIGGER {prefix}_no_delete;")
+    else:
+        registry._db.script(f"DROP TRIGGER {table}_append_only ON {table};")
 
 
 @pytest.fixture(scope="session")

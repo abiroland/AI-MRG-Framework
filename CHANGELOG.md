@@ -6,6 +6,20 @@ Packs are versioned separately; their changes are listed under **Packs**.
 
 ## [Unreleased]
 
+## [0.2.0] — Phase 2
+
+### Added (Phase 2b)
+- **PostgreSQL backend** (`pip install "ai-mrg[postgres]"`): `aimrg --db postgresql://... init --artifacts-dir ...`. Append-only triggers on evidence and lifecycle events in both backends; the full test suite runs against both (ADR-0006).
+- **REST API** (`pip install "ai-mrg[api]"`, `aimrg serve`): assets, classification, tiering, plans, evidence uploads, check runs with CSV uploads, findings, lifecycle transitions, reports (Markdown/Word) and audit verification. Role-based access (viewer, developer, validator, approver, auditor, admin); the authenticated user is always the recorded actor and, for approvals, the approver.
+- **Users and tokens**: `aimrg user add|list|disable|rotate-token`; tokens stored as SHA-256 hashes.
+- **Webhooks**: `aimrg webhook add|list|test|remove`; HMAC-SHA256-signed notifications for `finding.opened`, `finding.resolved`, `check.failed` and `lifecycle.transition`; opt-in and non-blocking.
+- `Registry.subscribe()` for in-process notifications.
+
+### Changed
+- Registry schema version 3 (`users`, `webhooks`, ordered lifecycle events); older SQLite registries migrate on open.
+- `--db` accepts a PostgreSQL URL; `Registry.path` replaced by `Registry.location`.
+- Artifact URIs that try to leave the artifacts directory are rejected.
+
 ### Added (Phase 2a)
 - **Fair-lending checks**: `fairness.adverse_impact_ratio` (with two-proportion p-values) and `fairness.standardized_mean_difference`, using group labels or proxy membership probabilities.
 - **Adverse-action reasons** (`aimrg.adverse_action`): reason maps, reason derivation from per-applicant attributions, and checks `adverse_action.reason_mapping` and `adverse_action.reason_specificity`; `aimrg reasons derive`.

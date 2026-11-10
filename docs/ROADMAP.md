@@ -50,12 +50,12 @@
 - [x] Fair-lending checks: adverse impact ratio, standardized mean difference, proxy-probability support; fair-lending summary template *(in core; no extra needed)*
 - [ ] Fair-lending worked example on public HMDA data *(a simulated example ships now)*
 - [x] Adverse-action reasons: derivation from attributions, mapping and specificity checks, methodology template, `aimrg reasons derive`
-- [ ] Ongoing monitoring: scheduled check runs, threshold profiles, breach → finding, webhook alerts
+- [x] Ongoing monitoring: scheduled check runs (exit codes for schedulers), thresholds, breach → finding, signed webhook alerts
 - [x] Findings tracking with aging reports
 - [x] Lifecycle workflow engine with gated transitions, separation of duties and the `approved_with_limits` path
 - [x] Third-party/vendor model controls and assessment template
-- [ ] REST API (FastAPI) with role-based access and separation-of-duties checks
-- [ ] Postgres support
+- [x] REST API (FastAPI) with role-based access and separation-of-duties checks
+- [x] Postgres support
 
 **Exit criteria:** a full lifecycle (intake → approval → 3 monitoring cycles → finding → remediation) is demonstrable through both the SDK and the API.
 

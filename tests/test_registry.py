@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from conftest import disable_append_only
 
 from aimrg.core.models import (
     AICategory,
@@ -16,6 +17,7 @@ from aimrg.core.models import (
     Severity,
 )
 from aimrg.registry import Registry, RegistryError, import_assets, resolve_pack
+from aimrg.registry.backends import BackendError
 
 
 def _asset(name: str = "A", **kw: object) -> AssetRecord:
@@ -118,11 +120,10 @@ def test_evidence_chain_and_append_only(registry: Registry) -> None:
     assert registry.evidence(control_id="FIN-INV-001")
     assert registry.verify().ok
 
-    conn = registry._conn
-    with pytest.raises(sqlite3.DatabaseError, match="append-only"):
-        conn.execute("UPDATE evidence SET data = '{}'")
-    with pytest.raises(sqlite3.DatabaseError, match="append-only"):
-        conn.execute("DELETE FROM evidence")
+    with pytest.raises(BackendError, match="append-only"):
+        registry._db.run("UPDATE evidence SET data = '{}'")
+    with pytest.raises(BackendError, match="append-only"):
+        registry._db.run("DELETE FROM evidence")
 
 
 def test_evidence_rejects_unknown_control(registry: Registry) -> None:
@@ -140,14 +141,13 @@ def test_verify_detects_tampering(registry: Registry) -> None:
     # Tamper with an artifact on disk.
     registry.artifact_path(uri).write_bytes(b"edited")
     # Tamper with the database by bypassing the triggers.
-    conn = registry._conn
-    conn.execute("DROP TRIGGER evidence_no_update")
-    row = conn.execute("SELECT id, data FROM evidence WHERE seq = 2").fetchone()
-    conn.execute(
+    disable_append_only(registry, "evidence")
+    row = registry._db.query_one("SELECT id, data FROM evidence WHERE seq = 2")
+    assert row is not None
+    registry._db.run(
         "UPDATE evidence SET data = ? WHERE id = ?",
         (row[1].replace('"second"', '"rewritten"'), row[0]),
     )
-    conn.commit()
     problems = registry.verify().problems
     assert any("artifact altered" in p for p in problems)
     assert any("content was altered" in p for p in problems)

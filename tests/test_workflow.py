@@ -21,6 +21,7 @@ from aimrg.findings import aging, default_due_date
 from aimrg.packs.models import ControlStage
 from aimrg.packs.resolver import required_controls
 from aimrg.registry import Registry, RegistryError
+from aimrg.registry.backends import BackendError
 from aimrg.workflow import WorkflowError, check_transition, next_steps, transition
 
 
@@ -206,8 +207,8 @@ def test_record_event_checks_current_status(registry: Registry, model: str) -> N
             )
         )
     transition(registry, model, "development", actor="dev")
-    with pytest.raises(sqlite3.DatabaseError, match="append-only"):
-        registry._conn.execute("DELETE FROM events")
+    with pytest.raises(BackendError, match="append-only"):
+        registry._db.run("DELETE FROM events")
 
 
 def test_retired_is_terminal(registry: Registry, model: str) -> None:
@@ -228,7 +229,7 @@ def test_migration_from_schema_v1(tmp_path: Path) -> None:
     conn.commit()
     conn.close()
     with Registry.open(path) as reg:
-        assert reg.meta("schema_version") == "2"
+        assert reg.meta("schema_version") == "3"
         reg.register(
             AssetRecord(name="A", owner="o", business_uses=["x"], ai_category="traditional")
         )
@@ -268,3 +269,32 @@ def test_default_due_dates_and_aging() -> None:
     )
     assert [r.bucket for r in rows] == ["90+ overdue", "31-90 overdue", "1-30 overdue", "not due"]
     assert rows[0].days_overdue == 170 and rows[-1].days_overdue == 0
+
+
+def test_migration_from_schema_v2_backfills_event_order(tmp_path: Path) -> None:
+    path = tmp_path / "v2.db"
+    with Registry.create(path) as reg:
+        asset = reg.register(
+            AssetRecord(name="A", owner="o", business_uses=["x"], ai_category="traditional")
+        )
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        "DROP TRIGGER events_no_update; DROP TRIGGER events_no_delete; DROP TABLE events;"
+        "CREATE TABLE events (id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, "
+        "occurred_at TEXT NOT NULL, data TEXT NOT NULL);"
+    )
+    stamp = "2026-01-01T00:00:00+00:00"  # identical timestamps: order must come from insertion
+    for i, (src, dst) in enumerate([("intake", "development"), ("development", "validation")]):
+        data = (
+            f'{{"id":"e{i}","asset_id":"{asset.id}","from_status":"{src}","to_status":"{dst}",'
+            f'"actor":"x","approver":null,"note":"","limits":null,"occurred_at":"{stamp}"}}'
+        )
+        conn.execute("INSERT INTO events VALUES (?, ?, ?, ?)", (f"e{9 - i}", asset.id, stamp, data))
+    conn.execute("UPDATE meta SET value = '2' WHERE key = 'schema_version'")
+    conn.commit()
+    conn.close()
+    with Registry.open(path) as reg:
+        assert reg.meta("schema_version") == "3"
+        assert [e.to_status.value for e in reg.events("A")] == ["development", "validation"]
+        with pytest.raises(BackendError, match="append-only"):
+            reg._db.run("DELETE FROM events")
