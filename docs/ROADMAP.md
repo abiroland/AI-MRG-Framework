@@ -66,11 +66,11 @@
 **Goal:** non-coders can use it, and it covers what SR 26-2 leaves out.
 
 - [ ] Streamlit dashboard: inventory, asset detail, findings board, monitoring trends, report center
-- [ ] **AI-system track** for GenAI and agentic AI, built on NIST AI RMF and AI 600-1: use-case intake, risk profile, human-oversight design, evaluation evidence, incident log
-- [ ] `genai` extra: adapters to open-source evaluation harnesses, red-team test registry, agent action/permission audit records
-- [ ] Colorado SB 26-189 content: covered-ADMT scoping questions, disclosure and notice templates (ready before the **Jan 1, 2027** effective date, then updated as rules settle)
+- [x] **AI-system track** for GenAI and agentic AI, built on NIST AI RMF and AI 600-1: use-case intake, risk profile, human-oversight design, evaluation evidence, incident log
+- [x] GenAI checks that assess evaluation results, red-team logs and agent action logs *(in core; harness-agnostic rather than adapters)*
+- [x] Colorado SB 26-189 content: controls for pre-use notice, 30-day adverse-outcome disclosure, correction and human review, record retention and developer documentation; draft notice templates *(update as Attorney General rules settle)*
 - [ ] MLflow integration
-- [ ] Examination package export (signed zip)
+- [x] Examination package export (zip with SHA-256 manifest and `export verify`)
 - [ ] Docker Compose deployment (API + dashboard + Postgres)
 
 **Exit criteria:** a non-technical model owner can register, review and approve through the UI alone.

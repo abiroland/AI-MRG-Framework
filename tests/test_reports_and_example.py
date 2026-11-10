@@ -76,9 +76,10 @@ def test_end_to_end_example(tmp_path: Path) -> None:
     registry = module.main(tmp_path / "demo")
     try:
         assert registry.verify().ok
-        findings = registry.findings()
+        findings = registry.findings("Card Underwriting PD")
         assert len(findings) == 3
         assert sum(f.status.value == "open" for f in findings) == 2
+        assert registry.get("Customer Service Assistant").classification.track.value == "ai_system"
         assert registry.get("Card Underwriting PD").status.value == "change_requested"
         demo = tmp_path / "demo"
         assert (demo / "validation_report.docx").is_file()
@@ -91,6 +92,10 @@ def test_end_to_end_example(tmp_path: Path) -> None:
         assert "Screening metrics only" in fair
         reasons = (demo / "adverse_action_reasons.md").read_text(encoding="utf-8")
         assert "adverse_action.reason_specificity — PASS" in reasons
+        assert "genai.agent_permission_audit — FAIL" in (demo / "ai_system_record.md").read_text()
+        from aimrg.export import verify_package
+
+        assert verify_package(demo / "examination-package.zip") == []
     finally:
         registry.close()
     with pytest.raises(SystemExit):

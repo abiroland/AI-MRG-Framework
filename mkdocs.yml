@@ -32,6 +32,8 @@ nav:
   - Getting started: getting-started.md
   - Checks: checks.md
   - Lifecycle workflow: workflow.md
+  - Generative and agentic AI: ai-systems.md
+  - Examination packages: exam-packages.md
   - REST API and webhooks: api.md
   - Deployment: deployment.md
   - Writing packs: packs.md

@@ -1,0 +1,116 @@
+{% set c = asset.classification %}
+{% set genai = results_for("genai.") %}
+# AI System Governance Record — {{ asset.name }}
+
+> {{ disclaimer }}
+
+> Generative and agentic AI are outside the scope of SR 26-2. This record follows the NIST AI Risk Management Framework and its Generative AI Profile (NIST AI 600-1). Where the system touches credit decisions, ECOA/Regulation B and fair-lending obligations still apply in full.
+
+| | |
+|---|---|
+| **System** | {{ asset.name | cell }} (`{{ asset.id[:12] }}`) |
+| **Owner** | {{ asset.owner | cell }} |
+| **Technique** | {{ asset.ai_category.value }} |
+| **Vendor / model provider** | {{ asset.vendor | cell }} |
+| **Business uses** | {{ asset.business_uses | join(", ") | cell }} |
+| **Governance track** | {{ c.track.value }} |
+| **Risk tier** | {{ asset.risk_assessment.tier }} |
+| **Lifecycle status** | {{ asset.status.value }} |
+| **Governance pack** | {{ pack.ref }} |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+
+## 1. Use case and context (MAP)
+
+[TO COMPLETE — what the system does, who uses it and who is affected, what decisions or communications it influences, what it must never do, and the human workflow around it.]
+
+**Classification rationale:** {{ c.rationale }}
+
+## 2. Generative AI risk profile (NIST AI 600-1)
+
+| Risk | Relevant? | Notes and mitigations |
+|---|---|---|
+{% for risk in nist_600_1_risks %}
+| {{ risk }} | [TO COMPLETE] | |
+{% endfor %}
+
+## 3. Human oversight (GOVERN / MAP)
+
+[TO COMPLETE — who reviews outputs and when, which actions require human approval, how users override or escalate, and how oversight is staffed and trained.]
+
+## 4. Evaluation evidence (MEASURE)
+
+{% if not genai %}
+No AI-system check results recorded yet.
+{% endif %}
+{% for r in genai %}
+### {{ r.check_id }} — {{ r.outcome | upper }}
+
+Control {{ r.evidence.control_id }} · recorded {{ r.evidence.recorded_at.strftime("%Y-%m-%d") }} by {{ r.evidence.actor }}
+
+{{ r.summary }}
+
+{% if r.tables.get("categories") %}
+| Category | NIST AI 600-1 risk | Cases | Pass rate |
+|---|---|---|---|
+{% for row in r.tables.categories %}
+| {{ row.category | cell }} | {{ row.nist_600_1_risk | cell }} | {{ row.cases }} | {{ row.pass_rate | pct }} |
+{% endfor %}
+
+{% endif %}
+{% if r.tables.get("tools") %}
+| Tool | Actions | Allowed | Needs human approval | Unapproved actions |
+|---|---|---|---|---|
+{% for row in r.tables.tools %}
+| {{ row.tool | cell }} | {{ row.actions }} | {{ "yes" if row.allowed else "**no**" }} | {{ "yes" if row.needs_human_approval else "no" }} | {{ row.unapproved_actions }} |
+{% endfor %}
+
+{% endif %}
+{% if r.tables.get("by_severity_and_status") %}
+| Severity | {% for k in r.tables.by_severity_and_status[0].keys() if k != "severity" %}{{ k }} | {% endfor %}
+
+|---|{% for k in r.tables.by_severity_and_status[0].keys() if k != "severity" %}---|{% endfor %}
+
+{% for row in r.tables.by_severity_and_status %}
+| {{ row.severity }} | {% for k, v in row.items() if k != "severity" %}{{ v }} | {% endfor %}
+
+{% endfor %}
+
+{% endif %}
+{% if r.thresholds %}
+| Threshold | Value | Warn | Fail | Outcome |
+|---|---|---|---|---|
+{% for t in r.thresholds %}
+| {{ t.name | cell }} | {{ t.value | pct }} | {{ t.warn | pct }} | {{ t.fail | pct }} | {{ t.outcome }} |
+{% endfor %}
+
+{% endif %}
+{% for note in r.notes %}
+- {{ note }}
+{% endfor %}
+
+{% endfor %}
+## 5. Incidents and issues (MANAGE)
+
+Incidents are recorded as findings (control FIN-AIS-005).
+
+{% if findings %}
+| ID | Severity | Status | Control | Title | Opened |
+|---|---|---|---|---|---|
+{% for f in findings %}
+| `{{ f.id[:8] }}` | {{ f.severity.value }} | {{ f.status.value }} | {{ f.control_id | cell }} | {{ f.title | cell }} | {{ f.opened_at.strftime("%Y-%m-%d") }} |
+{% endfor %}
+{% else %}
+No incidents or findings recorded.
+{% endif %}
+
+## 6. Required controls
+
+| Control | Stage | Title | Status | Missing evidence |
+|---|---|---|---|---|
+{% for item in coverage %}
+| {{ item.control.id }} | {{ item.control.lifecycle_stage.value }} | {{ item.control.title | cell }} | {{ item.status.value }}{% if item.latest_outcome %} ({{ item.latest_outcome.value }}){% endif %} | {{ item.missing | map(attribute="value") | join(", ") | cell }} |
+{% endfor %}
+
+## 7. Decision
+
+[TO COMPLETE — reviewer and approver: decision, conditions of use, and review date.]

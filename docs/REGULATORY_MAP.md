@@ -46,7 +46,9 @@ This map shows which external sources each AI-MRG control area draws on. Control
 | **Documentation** | ✔ | ○ | | | ○ | ✔ | ✔ |
 | **Governance, roles, internal audit** | ✔ | | | | ○ | ✔ (GOVERN) | |
 | **GenAI / agentic AI controls** | — (out of scope) | ○ (when used in credit) | | | ○ | ✔ | ○ |
-| **Consumer notices & disclosures** | | ✔ | ✔ | | | ○ | ✔ |
+| **Consumer notices & disclosures** | | ✔ | ✔ | | | ○ | ✔ (pre-use notice, 30-day adverse-outcome disclosure) |
+| **Consumer rights after adverse outcomes** | | ✔ | | | | ○ (MANAGE 4.1) | ✔ (data correction, human review) |
+| **Record retention** | ✔ | ✔ | | | | ○ | ✔ |
 
 ---
 

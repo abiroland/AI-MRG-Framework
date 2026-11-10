@@ -40,6 +40,9 @@ controls:
     evidence_required: [check_result, document]
     checks:
       - id: genai.evaluation_suite
+        params:
+          required_categories: groundedness,harmful_content,privacy_leakage,prompt_injection
+          min_cases: 30
       - id: genai.red_team_log
     references:
       - { source: NIST-AI-RMF-1.0, section: MEASURE 2 }

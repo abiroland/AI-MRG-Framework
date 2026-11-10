@@ -25,7 +25,7 @@ from datetime import date
 from typing import Annotated, Any, Literal
 
 import pandas as pd
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.datastructures import UploadFile
@@ -45,6 +45,7 @@ from aimrg.core.models import (
     Severity,
     TierOverride,
 )
+from aimrg.export import package_bytes
 from aimrg.findings import aging, default_due_date
 from aimrg.packs.models import ControlStage
 from aimrg.packs.resolver import ResolverError, coverage
@@ -607,6 +608,26 @@ def create_app(db: str) -> FastAPI:
             content,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={"Content-Disposition": f'attachment; filename="{template}.docx"'},
+        )
+
+    @app.get("/export", tags=["audit"])
+    def export(
+        registry: RegistryDep,
+        _: Annotated[User, Depends(require(Role.AUDITOR))],
+        asset: Annotated[list[str] | None, Query()] = None,
+    ) -> Response:
+        """Download an examination package (zip) for the given assets (default: all)."""
+        try:
+            content, summary = package_bytes(registry, asset)
+        except RegistryError as exc:
+            raise fail(exc) from exc
+        return Response(
+            content,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": 'attachment; filename="aimrg-examination-package.zip"',
+                "X-AIMRG-Sums-SHA256": summary.sums_sha256,
+            },
         )
 
     @app.get("/audit/verify", tags=["audit"])

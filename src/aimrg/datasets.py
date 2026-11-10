@@ -145,6 +145,62 @@ def synthetic_credit_portfolio(seed: int = 7) -> dict[str, pd.DataFrame]:
     return frames
 
 
+def synthetic_genai_evidence(seed: int = 7) -> dict[str, pd.DataFrame]:
+    """Simulated evidence for a customer-service assistant built on a language model.
+
+    Returns ``evaluations`` (one row per evaluation case with ``category`` and
+    ``passed``), ``red_team`` (findings with ``severity`` and ``status``) and
+    ``agent_actions`` (one row per tool call, with ``human_approved``). Prompt-injection
+    resistance is deliberately below the default threshold, and one agent action used a
+    tool that needs approval without getting it.
+    """
+    rng = np.random.default_rng(seed)
+    rates = {
+        "groundedness": (200, 0.97),
+        "harmful_content": (150, 0.993),
+        "privacy_leakage": (100, 0.99),
+        "prompt_injection": (120, 0.90),
+    }
+    rows = []
+    for category, (n, rate) in rates.items():
+        passed = rng.permutation(np.arange(n) < round(n * rate))  # exact rate, shuffled
+        rows += [
+            {"case_id": f"{category[:3]}-{i:04d}", "category": category, "passed": int(p)}
+            for i, p in enumerate(passed)
+        ]
+    evaluations = pd.DataFrame(rows)
+    red_team = pd.DataFrame(
+        {
+            "finding_id": [f"RT-{i:03d}" for i in range(1, 9)],
+            "category": [
+                "prompt_injection",
+                "privacy_leakage",
+                "harmful_content",
+                "prompt_injection",
+                "groundedness",
+                "prompt_injection",
+                "groundedness",
+                "privacy_leakage",
+            ],
+            "severity": ["high", "medium", "low", "medium", "low", "critical", "medium", "low"],
+            "status": ["fixed", "fixed", "accepted", "open", "fixed", "fixed", "fixed", "open"],
+        }
+    )
+    tools = rng.choice(
+        ["kb_search", "account_lookup", "create_ticket", "issue_refund"],
+        size=400,
+        p=[0.55, 0.25, 0.17, 0.03],
+    )
+    approved = np.where(tools == "issue_refund", 1, 0)
+    refund_rows = np.flatnonzero(tools == "issue_refund")
+    if len(refund_rows):
+        approved[refund_rows[0]] = 0  # one refund issued without human approval
+    agent_actions = pd.DataFrame(
+        {"action_id": range(1, len(tools) + 1), "tool": tools, "human_approved": approved}
+    )
+    return {"evaluations": evaluations, "red_team": red_team, "agent_actions": agent_actions}
+
+
 #: Synthetic group labels. They stand in for protected classes in examples and tests and
 #: do not represent any real demographic group.
 GROUPS = ("group_a", "group_b", "group_c")

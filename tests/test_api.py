@@ -242,6 +242,11 @@ def test_full_flow_over_api(api, registry: Registry, portfolio) -> None:  # type
     assert api("GET", "/reports/nope", "vic").status_code == 404
 
     assert api("GET", "/audit/verify", "root").json()["ok"] is True
+    assert api("GET", "/export", "vic").status_code == 403
+    package = api("GET", f"/export?asset={ASSET}", "aud")
+    assert package.status_code == 200 and package.content[:2] == b"PK"
+    assert len(package.headers["X-AIMRG-Sums-SHA256"]) == 64
+    assert api("GET", "/export?asset=nope", "aud").status_code == 404
     assert {e["actor"] for e in api("GET", f"/assets/{ASSET}/evidence", "vic").json()} == {"dana"}
 
 

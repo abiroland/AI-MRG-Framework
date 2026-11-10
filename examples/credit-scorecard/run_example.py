@@ -20,6 +20,9 @@ The story, step by step:
    the model goes into production.
 6. A later monitoring cycle finds drift. Checks fail, findings open, and a change request
    is raised.
+7. An agentic customer-service assistant is governed on the AI-system track: evaluation
+   results, red-team findings and agent action logs are assessed.
+8. Reports and an examination package (zip with SHA-256 manifest) are produced.
 
 All data are synthetic (see ``aimrg.datasets``).
 """
@@ -44,8 +47,10 @@ from aimrg.datasets import (
     SCORE,
     TARGET,
     synthetic_credit_portfolio,
+    synthetic_genai_evidence,
     synthetic_lending_decisions,
 )
+from aimrg.export import export_package
 from aimrg.registry import Registry
 from aimrg.reports import markdown_to_docx, render
 from aimrg.tiering import assess_asset
@@ -300,14 +305,22 @@ def main(out_dir: Path) -> Registry:
         DEVELOPER,
         b"# CO notice\n",
     )
-    _record(
-        registry,
-        model.id,
-        "FIN-CPR-005",
-        EvidenceType.ATTESTATION,
-        "Colorado obligations reviewed by compliance.",
-        VALIDATOR,
-    )
+    for control_id, summary in [
+        ("FIN-CPR-005", "Colorado pre-use notice reviewed by compliance."),
+        ("FIN-CPR-006", "Colorado 30-day adverse-outcome disclosure, aligned with Reg B notice."),
+        ("FIN-CPR-007", "Data-correction and human-review procedure."),
+    ]:
+        if control_id != "FIN-CPR-005":
+            _record(
+                registry,
+                model.id,
+                control_id,
+                EvidenceType.DOCUMENT,
+                summary,
+                DEVELOPER,
+                f"# {control_id}\n".encode(),
+            )
+        _record(registry, model.id, control_id, EvidenceType.ATTESTATION, summary, VALIDATOR)
     transition(registry, model.id, "in_production", actor=DEVELOPER)
 
     # 5. A monitoring cycle finds drift; a change request follows.
@@ -330,8 +343,66 @@ def main(out_dir: Path) -> Registry:
         note="Recalibrate: discrimination and calibration deteriorated in monitoring.",
     )
 
-    # 6. Documents and an integrity check.
-    for template in ("validation_report", "fair_lending_report", "adverse_action_reasons"):
+    # 6. An agentic AI assistant on the AI-system track (outside SR 26-2's scope).
+    genai = synthetic_genai_evidence(seed=7)
+    for role, frame in genai.items():
+        frame.to_csv(out_dir / f"{role}.csv", index=False)
+    assistant = registry.register(
+        AssetRecord(
+            name="Customer Service Assistant",
+            owner="customer-operations",
+            business_uses=["customer_service"],
+            ai_category=AICategory.AGENTIC,
+            vendor="Example LLM Provider",
+            description="LLM-based agent that answers questions and can open tickets or "
+            "issue small refunds.",
+        )
+    )
+    registry.set_classification(
+        assistant.id,
+        classify(
+            ai_category=AICategory.AGENTIC,
+            is_model_sr26_2=False,
+            third_party=True,
+            rationale="Agentic LLM application; governed on the AI-system track.",
+            jurisdictions=["US"],
+        ),
+    )
+    assess_asset(
+        registry,
+        assistant.id,
+        {"complexity": 5, "assumptions": 3, "data_quality": 3, "exposure": 3, "purpose": 2},
+        assessed_by=VALIDATOR,
+    )
+    run_control_checks(
+        registry,
+        assistant.id,
+        "FIN-AIS-003",
+        {"evaluations": genai["evaluations"], "red_team": genai["red_team"]},
+        actor=VALIDATOR,
+    )
+    run_control_checks(
+        registry,
+        assistant.id,
+        "FIN-AIS-004",
+        {"agent_actions": genai["agent_actions"]},
+        actor=VALIDATOR,
+        params={
+            "allowed_tools": "kb_search,account_lookup,create_ticket,issue_refund",
+            "human_approval_tools": "issue_refund",
+        },
+    )
+    (out_dir / "ai_system_record.md").write_text(
+        render(registry, "ai_system_record", assistant.id), encoding="utf-8"
+    )
+
+    # 7. Documents, an examination package and an integrity check.
+    for template in (
+        "validation_report",
+        "fair_lending_report",
+        "adverse_action_reasons",
+        "colorado_admt_notices",
+    ):
         text = render(registry, template, model.id)
         (out_dir / f"{template}.md").write_text(text, encoding="utf-8")
     markdown_to_docx(
@@ -343,6 +414,7 @@ def main(out_dir: Path) -> Registry:
         render(registry, "inventory_report"), encoding="utf-8"
     )
 
+    package = export_package(registry, out_dir / "examination-package.zip")
     audit = registry.verify()
     open_findings = [f for f in registry.findings(model.id) if f.status is FindingStatus.OPEN]
     print(f"Registry:          {db}")
@@ -350,6 +422,7 @@ def main(out_dir: Path) -> Registry:
     print(f"Evidence recorded: {audit.evidence_checked} item(s); chains intact: {audit.ok}")
     print(f"Open findings:     {len(open_findings)}")
     print(f"Reports:           {out_dir}/*.md, validation_report.docx")
+    print(f"Package:           {package.path} (SHA256SUMS {package.sums_sha256[:16]}...)")
     return registry
 
 
