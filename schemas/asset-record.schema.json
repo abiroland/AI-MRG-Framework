@@ -255,6 +255,14 @@
       "title": "Depends On",
       "type": "array"
     },
+    "external_refs": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Links to other systems, e.g. {'mlflow.registered_model': 'card_pd'}.",
+      "title": "External Refs",
+      "type": "object"
+    },
     "classification": {
       "anyOf": [
         {

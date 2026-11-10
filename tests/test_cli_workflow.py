@@ -464,3 +464,12 @@ def test_init_postgres_via_cli(tmp_path: Path) -> None:
         )
         assert reg.exit_code == 0
         assert "A" in runner.invoke(main, ["--db", url, "list"]).output
+
+
+def test_init_if_missing_is_idempotent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    first = runner.invoke(main, ["--db", "gov.db", "init", "--if-missing"])
+    assert first.exit_code == 0 and "Created" in first.output
+    second = runner.invoke(main, ["--db", "gov.db", "init", "--if-missing"])
+    assert second.exit_code == 0 and "already exists" in second.output

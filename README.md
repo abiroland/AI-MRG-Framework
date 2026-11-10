@@ -2,7 +2,7 @@
 
 **An open-source, full-lifecycle AI and model risk governance toolkit for U.S. regulated industries — starting with financial services.**
 
-> Status: **v0.3 in progress (Phase 3a)**. New: the generative/agentic AI track (evaluation, red-team and agent-permission checks mapped to NIST AI 600-1), Colorado SB 26-189 controls and draft notices, and verifiable examination packages. Already in v0.2: Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes, **fair lending**, **adverse-action reasons**), a gated **lifecycle workflow** with independent approval, a tamper-evident evidence trail, findings with aging, reports in Markdown and Word, a **REST API** with role-based access, **PostgreSQL** support and signed **webhooks**. Next: the dashboard, MLflow integration and Docker Compose (Phase 3b). See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
+> Status: **v0.3 (Phase 3 complete)**. New in v0.3: a **web dashboard**, **MLflow** integration, **Docker Compose**, the generative/agentic AI track (evaluation, red-team and agent-permission checks mapped to NIST AI 600-1), Colorado SB 26-189 controls and draft notices, and verifiable examination packages. From v0.2: Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes, **fair lending**, **adverse-action reasons**), a gated **lifecycle workflow** with independent approval, a tamper-evident evidence trail, findings with aging, reports in Markdown and Word, a **REST API** with role-based access, **PostgreSQL** support and signed **webhooks**. Next: practitioner review, pilots and the 1.0 hardening (Phase 4). See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
 
 [![CI](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml)
 
@@ -49,6 +49,15 @@ pip install -e ".[dev]"
 # A complete run on a simulated credit model: registry, evidence, findings, reports
 python examples/credit-scorecard/run_example.py demo
 ```
+
+Or run PostgreSQL, the API and the dashboard together:
+
+```bash
+POSTGRES_PASSWORD='choose-one' docker compose up -d --build
+docker compose exec api cat /data/bootstrap-admin-token   # sign in at http://127.0.0.1:8501
+```
+
+![AI-MRG dashboard](docs/img/dashboard-lifecycle.png)
 
 Then follow [Getting started](docs/getting-started.md) for the step-by-step workflow (`aimrg init → register → classify → tier → plan → check run → report render → audit verify`). See [Checks](docs/checks.md) and [Writing packs](docs/packs.md) for details.
 

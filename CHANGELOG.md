@@ -6,6 +6,17 @@ Packs are versioned separately; their changes are listed under **Packs**.
 
 ## [Unreleased]
 
+## [0.3.0] — Phase 3
+
+### Added (Phase 3b)
+- **Dashboard** (`ai-mrg[dashboard]`, `aimrg dashboard`): inventory, asset controls/evidence/findings/lifecycle, findings aging, monitoring trends, report center and examination packages. Works only through the REST API, so roles and approval rules apply. Deep links via `?page=…&asset=…`.
+- **MLflow integration** (`ai-mrg[mlflow]`, `aimrg mlflow import|sync|record`): import registered models into the inventory, write governance tags and the main report back to MLflow, and record runs as evidence.
+- **Docker Compose**: `Dockerfile`, `docker-compose.yml` (PostgreSQL, API, dashboard) with idempotent bootstrap; smoke-tested in CI.
+- **Release workflow** for PyPI trusted publishing (`release.yml`, `RELEASING.md`).
+- API: `GET /assets/{ref}/check-results`, `GET /templates`.
+- `aimrg init --if-missing`; assets record `external_refs`.
+- The example runs two monitoring cycles (one clean, one with drift).
+
 ### Added (Phase 3a)
 - **AI-system track checks**: `genai.evaluation_suite` (pass rates per category, required categories, category-specific thresholds, NIST AI 600-1 mapping), `genai.red_team_log`, `genai.agent_permission_audit`.
 - `sensitivity.alternative_assumptions`; every check referenced by `fin-us-banking` is now implemented.

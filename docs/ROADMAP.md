@@ -65,13 +65,13 @@
 
 **Goal:** non-coders can use it, and it covers what SR 26-2 leaves out.
 
-- [ ] Streamlit dashboard: inventory, asset detail, findings board, monitoring trends, report center
+- [x] Streamlit dashboard: inventory, asset detail, findings board, monitoring trends, report center
 - [x] **AI-system track** for GenAI and agentic AI, built on NIST AI RMF and AI 600-1: use-case intake, risk profile, human-oversight design, evaluation evidence, incident log
 - [x] GenAI checks that assess evaluation results, red-team logs and agent action logs *(in core; harness-agnostic rather than adapters)*
 - [x] Colorado SB 26-189 content: controls for pre-use notice, 30-day adverse-outcome disclosure, correction and human review, record retention and developer documentation; draft notice templates *(update as Attorney General rules settle)*
-- [ ] MLflow integration
+- [x] MLflow integration (import registered models, sync governance tags and reports, record runs as evidence)
 - [x] Examination package export (zip with SHA-256 manifest and `export verify`)
-- [ ] Docker Compose deployment (API + dashboard + Postgres)
+- [x] Docker Compose deployment (API + dashboard + Postgres), smoke-tested in CI
 
 **Exit criteria:** a non-technical model owner can register, review and approve through the UI alone.
 
