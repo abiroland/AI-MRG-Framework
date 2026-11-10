@@ -32,9 +32,15 @@ control's check `params` if yours run the other way.
 | `stability.population_stability` | `baseline` vs `current` | `population_stability_index` on the score | score PSI by band, feature CSI |
 | `outcomes.backtest` | `current` (or `oot`/`test`) | `backtest_relative_error` | observed vs predicted event rate, overall and by band |
 
-Run `aimrg check list` to see what your installation provides, and
-`aimrg pack validate fin-us-banking` to see which checks the pack references that are not
-implemented yet (GenAI checks arrive in Phase 3).
+Run `aimrg check list` to see what your installation provides. Every check the
+`fin-us-banking` pack references is implemented.
+
+| Check | Uses | What it reports |
+|---|---|---|
+| `sensitivity.alternative_assumptions` | `dev` (or `test`/`oot`) with `params.alternative_scores` (columns of scores from alternative specifications) | Gini of each specification and its rank correlation with the model; notes if an alternative discriminates better. Informational. |
+
+Checks for generative and agentic AI (`genai.evaluation_suite`, `genai.red_team_log`,
+`genai.agent_permission_audit`) are described in [Generative and agentic AI](ai-systems.md).
 
 ## Fair-lending checks
 

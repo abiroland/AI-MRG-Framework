@@ -69,16 +69,60 @@ controls:
       - { source: FCRA, section: 15 U.S.C. 1681m }
 
   - id: FIN-CPR-005
-    title: Colorado automated decision-making disclosures
+    title: Colorado pre-use notice for covered ADMT
     objective: >
-      For covered automated decision-making technology used in consequential decisions
-      about Colorado consumers, provide the notices and consumer rights the law requires.
+      Before a covered automated decision-making technology is used for a consequential
+      decision about a Colorado consumer, give clear and conspicuous notice that it is used,
+      how to get more information about it, and the consumer's rights.
     lifecycle_stage: implementation
     applies_when: consequential_decision and "US-CO" in jurisdictions
     frequency: on_change
     evidence_required: [document, attestation]
     references:
-      - { source: CO-SB26-189 }
+      - { source: CO-SB26-189, section: Deployer notice }
     guidance: >
-      Effective 2027-01-01. Verify obligations against the enacted text, any Attorney
-      General rules, and the status of pending litigation before relying on this control.
+      Effective 2027-01-01. The Attorney General may adopt rules on these disclosures;
+      verify against the enacted text, any rules, and pending litigation. A draft notice
+      can be generated with `aimrg report render colorado_admt_notices`.
+
+  - id: FIN-CPR-006
+    title: Colorado post-adverse-outcome disclosure (within 30 days)
+    objective: >
+      When a covered ADMT materially influences a consequential decision with an adverse
+      outcome, provide within 30 days a plain-language description of the decision and
+      the role the ADMT played, and how to request more information and exercise rights.
+    lifecycle_stage: implementation
+    applies_when: consequential_decision and "US-CO" in jurisdictions
+    frequency: on_change
+    evidence_required: [document, attestation]
+    references:
+      - { source: CO-SB26-189, section: Post-adverse-outcome disclosure }
+    guidance: >
+      For credit decisions, coordinate with the ECOA/Regulation B adverse-action notice
+      (FIN-CPR-001) so the two disclosures are consistent.
+
+  - id: FIN-CPR-007
+    title: Colorado data correction and human review process
+    objective: >
+      After an adverse outcome, let consumers request correction of inaccurate personal
+      data the ADMT used and request meaningful human review and reconsideration of the
+      decision, to the extent the law requires.
+    lifecycle_stage: implementation
+    applies_when: consequential_decision and "US-CO" in jurisdictions
+    frequency: on_change
+    evidence_required: [document, attestation]
+    references:
+      - { source: CO-SB26-189, section: Consumer rights after an adverse outcome }
+      - { source: NIST-AI-RMF-1.0, section: MANAGE 4.1 }
+
+  - id: FIN-CPR-008
+    title: Colorado record retention for ADMT decisions
+    objective: >
+      Retain records showing how notices were given and how covered ADMT decisions and
+      requests were handled, for the period the law requires.
+    lifecycle_stage: monitoring
+    applies_when: consequential_decision and "US-CO" in jurisdictions
+    frequency: annually
+    evidence_required: [attestation]
+    references:
+      - { source: CO-SB26-189, section: Record retention }

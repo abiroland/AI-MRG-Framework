@@ -40,3 +40,17 @@ controls:
     references:
       - { source: SR-26-2, section: Third-party models }
       - { source: TPRM-2023 }
+
+  - id: FIN-TPM-004
+    title: Developer documentation for covered ADMT (Colorado)
+    objective: >
+      Obtain from the developer of a covered ADMT the documentation Colorado law requires
+      developers to provide (intended and known harmful uses, categories of training data,
+      information needed for the deployer's notices) and notice of material changes.
+    lifecycle_stage: validation
+    applies_when: third_party and consequential_decision and "US-CO" in jurisdictions
+    frequency: on_change
+    evidence_required: [document]
+    references:
+      - { source: CO-SB26-189, section: Developer documentation }
+      - { source: TPRM-2023 }

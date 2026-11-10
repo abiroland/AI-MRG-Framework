@@ -1,0 +1,48 @@
+# Colorado ADMT Notices — Draft — {{ asset.name }}
+
+> {{ disclaimer }}
+
+> **Draft for counsel review.** Colorado SB 26-189 takes effect on January 1, 2027. The Attorney General may adopt rules on these disclosures, and related litigation is ongoing. Check every statement against the enacted text and any rules before use. For credit decisions, align these notices with the ECOA/Regulation B adverse-action notice.
+
+| | |
+|---|---|
+| **System** | {{ asset.name | cell }} |
+| **Business uses** | {{ asset.business_uses | join(", ") | cell }} |
+| **Jurisdictions** | {{ asset.classification.jurisdictions | join(", ") | cell }} |
+| **Generated** | {{ generated_at }} by AI-MRG {{ aimrg_version }} |
+
+## 1. Pre-use notice (control FIN-CPR-005)
+
+*Shown clearly and conspicuously before the technology is used.*
+
+> **We use automated decision-making technology in this process.** [Name of institution] uses an automated tool to help evaluate [describe the decision, e.g. "applications for credit cards"]. The tool [describe its role, e.g. "estimates the likelihood that a loan will be repaid; a credit officer reviews applications that fall below our approval threshold"].
+>
+> To learn more about how this technology is used, [instructions: link, phone number, or address].
+>
+> If a decision is made against you, you have rights, including to receive an explanation, to ask us to correct inaccurate personal information used, and to request human review. [Summarize the rights as finally required.]
+
+## 2. Post-adverse-outcome disclosure (control FIN-CPR-006)
+
+*Sent within 30 days of an adverse outcome that the technology materially influenced.*
+
+> **About our decision on your [application].** On [date], we [describe the decision]. An automated tool played the following role in this decision: [plain-language description of the tool's role].
+>
+> The main factors were: [principal reasons; for credit decisions, use the same reasons as your adverse-action notice].
+>
+> You can [request more information / ask us to correct inaccurate personal information we used / ask for a person to review the decision] by [simple-to-follow instructions]. [Add any other content required by law or rule.]
+
+## 3. Correction and human-review process (control FIN-CPR-007)
+
+[TO COMPLETE — intake channel, identity verification, how corrected data triggers re-evaluation, who performs human review and their authority to change the outcome, response timelines, and how requests are logged for record retention (FIN-CPR-008).]
+
+## 4. Evidence status
+
+| Control | Title | Status | Missing evidence |
+|---|---|---|---|
+{% for c in coverage_for("FIN-CPR-005", "FIN-CPR-006", "FIN-CPR-007", "FIN-CPR-008", "FIN-TPM-004") %}
+| {{ c.control.id }} | {{ c.control.title | cell }} | {{ c.status.value }} | {{ c.missing | map(attribute="value") | join(", ") | cell }} |
+{% endfor %}
+{% if not coverage_for("FIN-CPR-005") %}
+
+This asset is not flagged as influencing consequential decisions about Colorado consumers (`US-CO` jurisdiction), so the Colorado controls do not apply to it.
+{% endif %}

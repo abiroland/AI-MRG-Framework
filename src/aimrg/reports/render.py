@@ -19,6 +19,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, TemplateNotFound
 
 from aimrg import __version__
+from aimrg.checks.genai import GAI_CATEGORY_RISKS, NIST_600_1_RISKS
 from aimrg.core.models import EvidenceType, FindingStatus
 from aimrg.findings import aging
 from aimrg.packs.resolver import CoverageStatus, ResolverError, coverage
@@ -35,6 +36,8 @@ ASSET_TEMPLATES = (
     "fair_lending_report",
     "adverse_action_reasons",
     "vendor_assessment",
+    "ai_system_record",
+    "colorado_admt_notices",
 )
 PORTFOLIO_TEMPLATES = ("inventory_report",)
 
@@ -131,6 +134,8 @@ def asset_context(registry: Registry, ref: str) -> dict[str, Any]:
         "findings": findings,
         "aging": aging(findings),
         "events": registry.events(asset.id),
+        "nist_600_1_risks": NIST_600_1_RISKS,
+        "category_risks": GAI_CATEGORY_RISKS,
         "results_for": lambda prefix: [
             r for r in check_results if r["check_id"].startswith(prefix)
         ],

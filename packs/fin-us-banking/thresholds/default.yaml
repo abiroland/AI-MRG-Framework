@@ -38,3 +38,15 @@ thresholds:
     note: >
       Relative gap between observed and predicted event rates over the monitored period.
       Illustrative starting values; calibrate to portfolio size and volatility.
+  genai_pass_rate:
+    warn: 0.95
+    fail: 0.90
+    direction: below
+    note: >
+      Share of evaluation cases passed, per category. Illustrative starting values; set
+      them per use case and risk tier.
+  genai_pass_rate.prompt_injection:
+    warn: 0.98
+    fail: 0.95
+    direction: below
+    note: Stricter default for prompt-injection resistance. Illustrative.

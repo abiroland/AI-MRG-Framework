@@ -29,6 +29,7 @@ from aimrg.core.models import (
     Severity,
     TierOverride,
 )
+from aimrg.export import export_package, verify_package
 from aimrg.findings import aging, default_due_date
 from aimrg.packs.loader import (
     PackValidationError,
@@ -1045,6 +1046,50 @@ def reasons_derive(
     click.secho(f"wrote reasons for {len(adverse)} adverse decision(s) to {output}", fg="green")
     if unmapped:
         click.secho(f"{unmapped} reason(s) have no statement in the map (UNMAPPED:...)", fg="red")
+
+
+# --- examination packages -------------------------------------------------------
+
+
+@main.group(name="export")
+def export_group() -> None:
+    """Examination packages (records, evidence, artifacts, reports, pack, hashes)."""
+
+
+@export_group.command("create")
+@click.argument("assets", nargs=-1)
+@click.option("-o", "--output", type=click.Path(dir_okay=False, path_type=Path), required=True)
+@pass_state
+def export_create(state: _State, assets: tuple[str, ...], output: Path) -> None:
+    """Write an examination package for ASSETS (default: all assets)."""
+    with state.registry() as registry:
+        try:
+            summary = export_package(registry, output, list(assets) or None)
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho(
+        f"wrote {summary.path} ({summary.assets} asset(s), {summary.files} files)", fg="green"
+    )
+    click.echo(f"SHA-256 of SHA256SUMS: {summary.sums_sha256}")
+    click.echo("Record this hash independently (or sign SHA256SUMS) to make tampering evident.")
+    if not summary.audit_ok:
+        click.secho("Warning: the audit trail had integrity problems; see manifest.json.", fg="red")
+    for item in summary.skipped_reports:
+        click.secho(f"  skipped: {item}", fg="yellow")
+
+
+@export_group.command("verify")
+@click.argument("package", type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--expect", default=None, help="Expected SHA-256 of SHA256SUMS.")
+def export_verify(package: Path, expect: str | None) -> None:
+    """Check that an examination package is intact."""
+    problems = verify_package(package, expect)
+    if problems:
+        click.secho(f"{len(problems)} problem(s):", fg="red", err=True)
+        for problem in problems:
+            click.echo(f"  - {problem}", err=True)
+        raise SystemExit(1)
+    click.secho("OK: every file matches SHA256SUMS.", fg="green")
 
 
 # --- reports and audit ------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 **An open-source, full-lifecycle AI and model risk governance toolkit for U.S. regulated industries — starting with financial services.**
 
-> Status: **v0.2 (Phase 2)**. Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes, **fair lending**, **adverse-action reasons**), a gated **lifecycle workflow** with independent approval, a tamper-evident evidence trail, findings with aging, reports in Markdown and Word, a **REST API** with role-based access, **PostgreSQL** support and signed **webhooks**. Next: the dashboard and the GenAI/agentic track (Phase 3). See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
+> Status: **v0.3 in progress (Phase 3a)**. New: the generative/agentic AI track (evaluation, red-team and agent-permission checks mapped to NIST AI 600-1), Colorado SB 26-189 controls and draft notices, and verifiable examination packages. Already in v0.2: Inventory, classification, risk tiering, control planning, automated checks (data, performance, stability, outcomes, **fair lending**, **adverse-action reasons**), a gated **lifecycle workflow** with independent approval, a tamper-evident evidence trail, findings with aging, reports in Markdown and Word, a **REST API** with role-based access, **PostgreSQL** support and signed **webhooks**. Next: the dashboard, MLflow integration and Docker Compose (Phase 3b). See [`docs/ROADMAP.md`](docs/ROADMAP.md). Pack content has **not yet been reviewed by practitioners**.
 
 [![CI](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/abiroland/ai-mrg-framework/actions/workflows/ci.yml)
 

@@ -28,8 +28,12 @@ python examples/credit-scorecard/run_example.py demo
    the model goes into production.
 7. **Monitoring.** Discrimination and calibration have deteriorated: two checks fail, two
    findings open, and a change request is raised.
-8. **Documents.** `validation_report.md` / `.docx`, `fair_lending_report.md`,
-   `adverse_action_reasons.md` and `inventory_report.md`; the audit trail is verified.
+8. **An agentic AI assistant** on the AI-system track: evaluation results (prompt-injection
+   resistance below threshold), red-team findings and an agent action log (one refund
+   issued without human approval) are assessed and open findings.
+9. **Documents.** Validation (Markdown and Word), fair-lending, adverse-action, Colorado
+   notice drafts, AI-system record and inventory reports, plus `examination-package.zip`
+   with a SHA-256 manifest (`aimrg export verify examination-package.zip`).
 
 ## Explore the result with the CLI
 

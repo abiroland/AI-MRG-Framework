@@ -6,6 +6,17 @@ Packs are versioned separately; their changes are listed under **Packs**.
 
 ## [Unreleased]
 
+### Added (Phase 3a)
+- **AI-system track checks**: `genai.evaluation_suite` (pass rates per category, required categories, category-specific thresholds, NIST AI 600-1 mapping), `genai.red_team_log`, `genai.agent_permission_audit`.
+- `sensitivity.alternative_assumptions`; every check referenced by `fin-us-banking` is now implemented.
+- **AI-system governance record** template with the twelve NIST AI 600-1 risks.
+- **Colorado SB 26-189**: controls FIN-CPR-005 to FIN-CPR-008 (pre-use notice, 30-day adverse-outcome disclosure, data correction and human review, record retention) and FIN-TPM-004 (developer documentation); `colorado_admt_notices` draft template.
+- **Examination packages**: `aimrg export create|verify`, `GET /export`; records, evidence, artifacts, reports, pack snapshot and `SHA256SUMS`.
+- `aimrg.datasets.synthetic_genai_evidence`; the example now includes an agentic assistant and an examination package.
+
+### Packs
+- `fin-us-banking`: new Colorado and AI-system content above; thresholds `genai_pass_rate` and `genai_pass_rate.prompt_injection` (illustrative).
+
 ## [0.2.0] — Phase 2
 
 ### Added (Phase 2b)
