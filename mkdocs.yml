@@ -34,7 +34,9 @@ nav:
   - Lifecycle workflow: workflow.md
   - Generative and agentic AI: ai-systems.md
   - Examination packages: exam-packages.md
+  - Dashboard: dashboard.md
   - REST API and webhooks: api.md
+  - MLflow: mlflow.md
   - Deployment: deployment.md
   - Writing packs: packs.md
   - Design:

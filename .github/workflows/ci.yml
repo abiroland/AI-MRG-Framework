@@ -96,3 +96,35 @@ jobs:
         with:
           name: dist
           path: dist/
+
+  compose:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v7
+      - name: Start the stack
+        run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Smoke-test API, auth and dashboard
+        run: |
+          curl -fsS http://127.0.0.1:8000/health
+          TOKEN=$(docker compose exec -T api cat /data/bootstrap-admin-token)
+          curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/me | grep '"admin"'
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/me)
+          test "$code" = 401
+          docker compose exec -T api aimrg register "Smoke Model" --owner ci --use credit_decision --category traditional
+          curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/assets | grep "Smoke Model"
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8501/_stcore/health && break; sleep 2; done
+      - name: Restart keeps data and does not re-bootstrap
+        run: |
+          docker compose restart api
+          docker compose up -d --wait
+          TOKEN=$(docker compose exec -T api cat /data/bootstrap-admin-token)
+          curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/assets | grep "Smoke Model"
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+

@@ -323,18 +323,20 @@ def main(out_dir: Path) -> Registry:
         _record(registry, model.id, control_id, EvidenceType.ATTESTATION, summary, VALIDATOR)
     transition(registry, model.id, "in_production", actor=DEVELOPER)
 
-    # 5. A monitoring cycle finds drift; a change request follows.
-    run_control_checks(
-        registry,
-        model.id,
-        "FIN-MON-001",
-        {"baseline": data["dev"], "current": data["current"]},
-        actor=VALIDATOR,
-        **common,
-    )
-    run_control_checks(
-        registry, model.id, "FIN-MON-002", {"current": data["current"]}, actor=VALIDATOR, **common
-    )
+    # 5. Two monitoring cycles: the first is clean, the second finds drift and a change
+    #    request follows.
+    for period in ("oot", "current"):
+        run_control_checks(
+            registry,
+            model.id,
+            "FIN-MON-001",
+            {"baseline": data["dev"], "current": data[period]},
+            actor=VALIDATOR,
+            **common,
+        )
+        run_control_checks(
+            registry, model.id, "FIN-MON-002", {"current": data[period]}, actor=VALIDATOR, **common
+        )
     transition(
         registry,
         model.id,

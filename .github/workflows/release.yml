@@ -1,0 +1,53 @@
+name: Release
+
+# Publish to PyPI when a GitHub release is published (tag e.g. v0.3.0).
+# Uses PyPI trusted publishing: no API token is stored in GitHub. Configure the pending
+# publisher on pypi.org with workflow "release.yml" and environment "pypi".
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Check the tag matches the package version
+        run: |
+          version=$(python -c "import re,pathlib;print(re.search(r'__version__ = \"([^\"]+)\"', pathlib.Path('src/aimrg/__init__.py').read_text()).group(1))")
+          tag="${GITHUB_REF_NAME#v}"
+          echo "package $version, tag $tag"
+          test "$version" = "$tag"
+      - run: pip install build
+      - run: python -m build
+      - name: Smoke-test the wheel
+        run: |
+          python -m venv /tmp/env
+          /tmp/env/bin/pip install "$(ls dist/*.whl)[docx]"
+          cd /tmp && /tmp/env/bin/aimrg --version && /tmp/env/bin/aimrg pack validate fin-us-banking
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ai-mrg
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

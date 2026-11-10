@@ -210,6 +210,10 @@ class AssetRecord(_Model):
     vendor: str | None = None
     status: LifecycleStatus = LifecycleStatus.INTAKE
     depends_on: list[str] = Field(default_factory=list, description="Ids of upstream assets.")
+    external_refs: dict[str, str] = Field(
+        default_factory=dict,
+        description="Links to other systems, e.g. {'mlflow.registered_model': 'card_pd'}.",
+    )
     classification: Classification | None = None
     risk_assessment: RiskAssessment | None = None
     created_at: datetime = Field(default_factory=_now)

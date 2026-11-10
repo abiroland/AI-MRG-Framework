@@ -1,0 +1,64 @@
+# AI-MRG with PostgreSQL, the REST API and the dashboard.
+#
+#   POSTGRES_PASSWORD=<choose one> docker compose up -d
+#   docker compose exec api cat /data/bootstrap-admin-token     # admin API token
+#   open http://127.0.0.1:8501                                  # dashboard
+#
+# Ports are bound to 127.0.0.1. Put a TLS-terminating reverse proxy in front before
+# exposing them to other machines.
+name: aimrg
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: aimrg
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: aimrg
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aimrg"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build: .
+    image: aimrg:local
+    command: ["api"]
+    environment:
+      AIMRG_DB: postgresql://aimrg:${POSTGRES_PASSWORD}@db:5432/aimrg
+      AIMRG_ARTIFACTS_DIR: /data/artifacts
+      AIMRG_BOOTSTRAP_ADMIN: ${AIMRG_BOOTSTRAP_ADMIN:-admin}
+    volumes:
+      - aimrg-data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  dashboard:
+    image: aimrg:local
+    command: ["dashboard"]
+    environment:
+      AIMRG_DB: postgresql://aimrg:${POSTGRES_PASSWORD}@db:5432/aimrg
+      AIMRG_API_URL: http://api:8000
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  aimrg-data:

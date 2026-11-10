@@ -51,7 +51,8 @@ from aimrg.packs.models import ControlStage
 from aimrg.packs.resolver import ResolverError, coverage
 from aimrg.registry import Registry, RegistryError
 from aimrg.registry.accounts import Role, User
-from aimrg.reports import markdown_to_docx, render
+from aimrg.reports import available_templates, markdown_to_docx, render
+from aimrg.reports.render import PORTFOLIO_TEMPLATES
 from aimrg.tiering import assess_asset
 from aimrg.workflow import WorkflowError, next_steps, transition
 
@@ -372,6 +373,37 @@ def create_app(db: str) -> FastAPI:
         except (RegistryError, ValueError) as exc:
             raise fail(exc) from exc
 
+    @app.get("/assets/{ref}/check-results", tags=["evidence"])
+    def check_results(
+        ref: str, _: UserDep, registry: RegistryDep, check_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Automated check results over time (for trends), oldest first."""
+        try:
+            items = registry.evidence(ref)
+        except RegistryError as exc:
+            raise fail(exc) from exc
+        results = []
+        for item in items:
+            if item.type is not EvidenceType.CHECK_RESULT or not item.payload_uri:
+                continue
+            if check_id and item.check_id != check_id:
+                continue
+            payload = json.loads(registry.read_artifact(item.payload_uri))["result"]
+            results.append(
+                {
+                    "evidence_id": item.id,
+                    "control_id": item.control_id,
+                    "check_id": item.check_id or payload["check_id"],
+                    "outcome": payload["outcome"],
+                    "summary": payload["summary"],
+                    "recorded_at": item.recorded_at.isoformat(),
+                    "actor": item.actor,
+                    "metrics": payload.get("metrics", {}),
+                    "thresholds": payload.get("thresholds", []),
+                }
+            )
+        return results
+
     # --- checks -------------------------------------------------------------------
 
     @app.post("/assets/{ref}/checks/{control_id}", tags=["checks"])
@@ -574,6 +606,14 @@ def create_app(db: str) -> FastAPI:
             raise fail(exc) from exc
 
     # --- reports and audit ----------------------------------------------------------
+
+    @app.get("/templates", tags=["reports"])
+    def templates(_: UserDep, registry: RegistryDep) -> dict[str, list[str]]:
+        names = available_templates(registry)
+        return {
+            "asset": [n for n in names if n not in PORTFOLIO_TEMPLATES],
+            "portfolio": [n for n in names if n in PORTFOLIO_TEMPLATES],
+        }
 
     @app.get("/reports/{template}", tags=["reports"])
     def portfolio_report(

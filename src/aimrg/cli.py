@@ -129,9 +129,20 @@ def main(ctx: click.Context, db: str, actor: str) -> None:
     help="Where evidence artifacts are stored (required for PostgreSQL; defaults to "
     "<db>-artifacts next to a SQLite file).",
 )
+@click.option(
+    "--if-missing", is_flag=True, help="Do nothing if a registry already exists (for scripts)."
+)
 @pass_state
-def init(state: _State, pack: str, artifacts_dir: Path | None) -> None:
+def init(state: _State, pack: str, artifacts_dir: Path | None, if_missing: bool) -> None:
     """Create a new registry."""
+    if if_missing:
+        try:
+            Registry.open(state.db).close()
+        except RegistryError:
+            pass
+        else:
+            click.echo("Registry already exists; nothing to do.")
+            return
     try:
         registry = Registry.create(state.db, pack=pack, artifacts_dir=artifacts_dir)
     except (RegistryError, PackValidationError) as exc:
@@ -998,6 +1009,165 @@ def serve(state: _State, host: str, port: int) -> None:  # pragma: no cover - ru
         raise click.ClickException('the API needs: pip install "ai-mrg[api]"') from exc
     state.registry().close()  # fail fast if the registry is missing
     uvicorn.run(create_app(state.db), host=host, port=port)
+
+
+@main.command()
+@click.option(
+    "--api-url",
+    default="http://127.0.0.1:8000",
+    envvar="AIMRG_API_URL",
+    show_default=True,
+    help="URL of a running `aimrg serve`.",
+)
+@click.option("--port", default=8501, show_default=True, type=int)
+def dashboard(api_url: str, port: int) -> None:  # pragma: no cover - runs a server
+    """Run the web dashboard (needs: pip install "ai-mrg[dashboard]")."""
+    import os
+    import subprocess
+    import sys
+
+    try:
+        import streamlit  # noqa: F401
+    except ImportError as exc:
+        raise click.ClickException('the dashboard needs: pip install "ai-mrg[dashboard]"') from exc
+    from aimrg.dashboard import APP_PATH
+
+    env = {**os.environ, "AIMRG_API_URL": api_url}
+    command = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(APP_PATH),
+        "--server.port",
+        str(port),
+        "--server.headless",
+        "true",
+        "--browser.gatherUsageStats",
+        "false",
+    ]
+    raise SystemExit(subprocess.call(command, env=env))  # noqa: S603
+
+
+# --- MLflow ---------------------------------------------------------------------
+
+
+@main.group(name="mlflow")
+@click.option(
+    "--tracking-uri",
+    envvar="MLFLOW_TRACKING_URI",
+    default=None,
+    help="MLflow tracking server (or set MLFLOW_TRACKING_URI).",
+)
+@click.pass_context
+def mlflow_group(ctx: click.Context, tracking_uri: str | None) -> None:
+    """MLflow integration (needs: pip install "ai-mrg[mlflow]")."""
+    ctx.meta["tracking_uri"] = tracking_uri
+
+
+def _mlflow() -> Any:
+    try:
+        from aimrg.integrations import mlflow as integration
+
+        integration._client(None)
+    except Exception as exc:  # pragma: no cover - depends on the environment
+        raise click.ClickException(str(exc)) from exc
+    return integration
+
+
+@mlflow_group.command("import")
+@click.option("--default-owner", default="unassigned", show_default=True)
+@click.option("--default-use", "default_uses", multiple=True, help="Business use if untagged.")
+@click.option(
+    "--category",
+    type=click.Choice([c.value for c in AICategory]),
+    default="ml_non_generative",
+    show_default=True,
+    help="Technique category if untagged.",
+)
+@click.option("--filter", "name_filter", default=None, help="Only models whose name contains this.")
+@click.pass_context
+def mlflow_import(
+    ctx: click.Context,
+    default_owner: str,
+    default_uses: tuple[str, ...],
+    category: str,
+    name_filter: str | None,
+) -> None:
+    """Register MLflow registered models in the inventory."""
+    integration = _mlflow()
+    state: _State = ctx.find_object(_State)  # type: ignore[assignment]
+    with state.registry() as registry:
+        result = integration.import_registered_models(
+            registry,
+            tracking_uri=ctx.meta["tracking_uri"],
+            default_owner=default_owner,
+            default_uses=list(default_uses) or None,
+            default_category=category,
+            name_filter=name_filter,
+        )
+    for asset in result.created:
+        click.secho(f"registered {asset.name}", fg="green")
+    if result.skipped:
+        click.echo(f"already in the inventory: {', '.join(result.skipped)}")
+    click.echo(f"{len(result.created)} imported. Next: classify and tier them.")
+
+
+@mlflow_group.command("sync")
+@click.argument("asset")
+@click.option("--run-id", default=None, help="Run to tag (default: the model's latest version).")
+@click.option("--no-report", is_flag=True, help="Do not log the report as an MLflow artifact.")
+@click.pass_context
+def mlflow_sync(ctx: click.Context, asset: str, run_id: str | None, no_report: bool) -> None:
+    """Write governance status (and the main report) to MLflow."""
+    integration = _mlflow()
+    state: _State = ctx.find_object(_State)  # type: ignore[assignment]
+    with state.registry() as registry:
+        try:
+            result = integration.sync_to_mlflow(
+                registry,
+                asset,
+                tracking_uri=ctx.meta["tracking_uri"],
+                run_id=run_id,
+                include_report=not no_report,
+            )
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    where = ", ".join(
+        x
+        for x in (
+            result.model and f"model {result.model}",
+            result.run_id and f"run {result.run_id[:12]}",
+        )
+        if x
+    )
+    click.secho(f"synced to {where}", fg="green")
+    for key, value in result.tags.items():
+        click.echo(f"  {key} = {value}")
+
+
+@mlflow_group.command("record")
+@click.argument("asset")
+@click.argument("control")
+@click.argument("run_id")
+@click.pass_context
+def mlflow_record(ctx: click.Context, asset: str, control: str, run_id: str) -> None:
+    """Record an MLflow run (params, metrics, tags) as document evidence for CONTROL."""
+    integration = _mlflow()
+    state: _State = ctx.find_object(_State)  # type: ignore[assignment]
+    with state.registry() as registry:
+        try:
+            item = integration.record_run_as_evidence(
+                registry,
+                asset,
+                control,
+                run_id,
+                actor=state.actor,
+                tracking_uri=ctx.meta["tracking_uri"],
+            )
+        except RegistryError as exc:
+            raise _fail(exc) from exc
+    click.secho(f"Recorded {item.summary} ({item.id[:12]})", fg="green")
 
 
 # --- adverse action -------------------------------------------------------------
