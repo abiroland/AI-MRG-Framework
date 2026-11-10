@@ -347,7 +347,7 @@ def test_lifecycle_fairness_and_reasons_cli(cli, tmp_path: Path) -> None:  # typ
     assert "standardized_mean_difference" in aging and "not due" in aging
 
     _ok(cli("reasons", "derive", "decisions.csv", "--map", str(reasons_yaml), "-o", "reasons.csv"))
-    assert Path("reasons.csv").read_text().startswith("row,reason_1")
+    assert Path("reasons.csv").read_text(encoding="utf-8").startswith("row,reason_1")
     _ok(
         cli(
             "reasons",
@@ -362,7 +362,7 @@ def test_lifecycle_fairness_and_reasons_cli(cli, tmp_path: Path) -> None:  # typ
             "texts.csv",
         )
     )
-    assert "Balances are high" in Path("texts.csv").read_text()
+    assert "Balances are high" in Path("texts.csv").read_text(encoding="utf-8")
     partial = Path("partial.yaml")
     partial.write_text(
         "reasons:\n  utilization: {code: R1, text: High balances relative to limits}\n"
@@ -401,7 +401,7 @@ def test_lifecycle_fairness_and_reasons_cli(cli, tmp_path: Path) -> None:  # typ
     )
 
     _ok(cli("report", "render", "fair_lending_report", ASSET, "-o", "fair.md"))
-    assert "AIR" in Path("fair.md").read_text()
+    assert "AIR" in Path("fair.md").read_text(encoding="utf-8")
     for kind in ("document", "approval"):
         _ok(cli("evidence", "add", ASSET, "FIN-MON-004", "--type", kind, "--summary", "retire"))
     _ok(cli("transition", ASSET, "retired"))
