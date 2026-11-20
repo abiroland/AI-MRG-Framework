@@ -87,6 +87,15 @@ aimrg plan "Card Underwriting PD" --stage validation
 Each applicable control is shown with its status (`missing`, `partial`, `failing`,
 `complete`), the evidence still missing, and its automated checks.
 
+Add `--json` to get the same rows as a JSON array for scripts and pipelines. This also
+works for `aimrg list` and `aimrg finding list`:
+
+```bash
+aimrg plan "Card Underwriting PD" --json | python -m json.tool
+aimrg list --json
+aimrg finding list --all --json
+```
+
 ### 6. Run checks
 
 Checks work on **scored datasets**: CSV (or Parquet) files that already contain your
