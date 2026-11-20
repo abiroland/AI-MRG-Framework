@@ -11,6 +11,7 @@ Packs are versioned separately; their changes are listed under **Packs**.
 - **Pilot kit**: pilot guide (4–6 week plan, success measures, data handling), case-study template, and a factual use-statement template.
 - **Security**: threat model with deployer hardening checklist; request-body limit for the API (`AIMRG_MAX_UPLOAD_MB`, default 50 MB; `aimrg serve --max-upload-mb`); `nosniff` and `no-store` response headers; `pip-audit` job in CI; CodeQL analysis; releases now carry SLSA build-provenance attestations, a CycloneDX SBOM and `SHA256SUMS`.
 - **Versioning and stability policy** for the software, the pack format and packs.
+- `--json` flag for `aimrg list`, `aimrg plan` and `aimrg finding list`: prints the same rows as a JSON array for scripts and pipelines (#14).
 
 ### Changed
 - Report templates render in Jinja's sandbox (packs are untrusted input).

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import getpass
+import json
 import re
 from collections import Counter
 from collections.abc import Sequence
@@ -92,6 +93,16 @@ pass_state = click.make_pass_decorator(_State)
 
 def _fail(exc: Exception) -> click.ClickException:
     return click.ClickException(str(exc))
+
+
+def _echo_json(data: Any) -> None:
+    """Print ``data`` as indented JSON for scripts and pipelines."""
+    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+json_option = click.option(
+    "--json", "as_json", is_flag=True, help="Print the rows as a JSON array instead of a table."
+)
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -216,26 +227,35 @@ def import_(state: _State, file: Path) -> None:
 
 
 @main.command(name="list")
+@json_option
 @pass_state
-def list_(state: _State) -> None:
+def list_(state: _State, as_json: bool) -> None:
     """List registered assets."""
     with state.registry() as registry:
         rows = []
+        records = []
         for a in registry.assets():
             open_findings = sum(
                 f.status in (FindingStatus.OPEN, FindingStatus.IN_REMEDIATION)
                 for f in registry.findings(a.id)
             )
-            rows.append(
-                [
-                    a.name,
-                    a.owner,
-                    a.classification.track.value if a.classification else None,
-                    a.risk_assessment.tier if a.risk_assessment else None,
-                    a.status.value,
-                    open_findings,
-                ]
+            track = a.classification.track.value if a.classification else None
+            tier = a.risk_assessment.tier if a.risk_assessment else None
+            rows.append([a.name, a.owner, track, tier, a.status.value, open_findings])
+            records.append(
+                {
+                    "id": a.id,
+                    "name": a.name,
+                    "owner": a.owner,
+                    "track": track,
+                    "tier": tier,
+                    "status": a.status.value,
+                    "open_findings": open_findings,
+                }
             )
+    if as_json:
+        _echo_json(records)
+        return
     if not rows:
         click.echo("No assets registered. Add one with `aimrg register` or `aimrg import`.")
         return
@@ -404,8 +424,9 @@ def tier(
 @main.command()
 @click.argument("asset")
 @click.option("--stage", type=click.Choice([s.value for s in ControlStage]), default=None)
+@json_option
 @pass_state
-def plan(state: _State, asset: str, stage: str | None) -> None:
+def plan(state: _State, asset: str, stage: str | None, as_json: bool) -> None:
     """Show the controls that apply to an asset and how far evidence covers them."""
     with state.registry() as registry:
         try:
@@ -413,6 +434,25 @@ def plan(state: _State, asset: str, stage: str | None) -> None:
             items = coverage(registry.pack, record, registry.evidence(record.id), stage)
         except (RegistryError, ResolverError) as exc:
             raise _fail(exc) from exc
+    if as_json:
+        _echo_json(
+            [
+                {
+                    "control": item.control.id,
+                    "stage": item.control.lifecycle_stage.value,
+                    "status": item.status.value,
+                    "latest_outcome": item.latest_outcome.value if item.latest_outcome else None,
+                    "missing": [t.value for t in item.missing],
+                    "checks": [
+                        {"id": c.id, "available": get_check(c.id) is not None}
+                        for c in item.control.checks
+                    ],
+                    "title": item.control.title,
+                }
+                for item in items
+            ]
+        )
+        return
     rows = []
     for item in items:
         checks = ", ".join(
@@ -622,8 +662,9 @@ def finding() -> None:
 @finding.command("list")
 @click.argument("asset", required=False)
 @click.option("--all", "show_all", is_flag=True, help="Include closed and risk-accepted.")
+@json_option
 @pass_state
-def finding_list(state: _State, asset: str | None, show_all: bool) -> None:
+def finding_list(state: _State, asset: str | None, show_all: bool, as_json: bool) -> None:
     """List findings (open ones by default)."""
     with state.registry() as registry:
         try:
@@ -633,6 +674,9 @@ def finding_list(state: _State, asset: str | None, show_all: bool) -> None:
             raise _fail(exc) from exc
     if not show_all:
         items = [f for f in items if f.status in (FindingStatus.OPEN, FindingStatus.IN_REMEDIATION)]
+    if as_json:
+        _echo_json([{**f.model_dump(mode="json"), "asset": names.get(f.asset_id)} for f in items])
+        return
     if not items:
         click.echo("No findings.")
         return
