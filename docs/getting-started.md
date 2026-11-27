@@ -2,7 +2,7 @@
 
 ## Install
 
-AI-MRG is not on PyPI yet. Install from source:
+Install from source:
 
 ```bash
 git clone https://github.com/abiroland/ai-mrg-framework
